@@ -5,6 +5,7 @@ package dfs;
 service NameNodeService {
     rpc Authenticate (LoginRequest) returns (LoginResponse);
     rpc Register (RegisterRequest) returns (RegisterResponse);
+    rpc PutFile (PutFileRequest) returns (PutFileResponse);
 }
 
 message LoginRequest {
@@ -23,6 +24,17 @@ message RegisterRequest {
 }
 
 message RegisterResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+//Subir archvoos
+message PutFileRequest {
+    string filename = 1;
+    bytes data = 2;
+}
+
+message PutFileResponse {
     bool success = 1;
     string message = 2;
 }

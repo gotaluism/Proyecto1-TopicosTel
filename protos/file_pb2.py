@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\nfile.proto\x12\x03\x64\x66s\"2\n\x0cLoginRequest\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\"1\n\rLoginResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"5\n\x0fRegisterRequest\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\"4\n\x10RegisterResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t2\x81\x01\n\x0fNameNodeService\x12\x35\n\x0c\x41uthenticate\x12\x11.dfs.LoginRequest\x1a\x12.dfs.LoginResponse\x12\x37\n\x08Register\x12\x14.dfs.RegisterRequest\x1a\x15.dfs.RegisterResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\nfile.proto\x12\x03\x64\x66s\"2\n\x0cLoginRequest\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\"1\n\rLoginResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"5\n\x0fRegisterRequest\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\"4\n\x10RegisterResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"0\n\x0ePutFileRequest\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\"3\n\x0fPutFileResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t2\xb7\x01\n\x0fNameNodeService\x12\x35\n\x0c\x41uthenticate\x12\x11.dfs.LoginRequest\x1a\x12.dfs.LoginResponse\x12\x37\n\x08Register\x12\x14.dfs.RegisterRequest\x1a\x15.dfs.RegisterResponse\x12\x34\n\x07PutFile\x12\x13.dfs.PutFileRequest\x1a\x14.dfs.PutFileResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -39,6 +39,10 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_REGISTERREQUEST']._serialized_end=175
   _globals['_REGISTERRESPONSE']._serialized_start=177
   _globals['_REGISTERRESPONSE']._serialized_end=229
-  _globals['_NAMENODESERVICE']._serialized_start=232
-  _globals['_NAMENODESERVICE']._serialized_end=361
+  _globals['_PUTFILEREQUEST']._serialized_start=231
+  _globals['_PUTFILEREQUEST']._serialized_end=279
+  _globals['_PUTFILERESPONSE']._serialized_start=281
+  _globals['_PUTFILERESPONSE']._serialized_end=332
+  _globals['_NAMENODESERVICE']._serialized_start=335
+  _globals['_NAMENODESERVICE']._serialized_end=518
 # @@protoc_insertion_point(module_scope)
