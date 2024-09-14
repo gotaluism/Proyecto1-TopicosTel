@@ -66,3 +66,13 @@ Secuencia:
 2. El NameNode recibe la solicitud, verifica el directorio del cliente, y busca los archivos y directorios correspondientes.
 3. El NameNode responde al cliente con una lista de los archivos y directorios que se encuentran en el directorio actual.
 4. El cliente recibe la lista de archivos y puede ver los resultados en su terminal o interfaz.
+
+
+### Comando rm (Borrar archivo)
+Secuencia:
+1. Usuario ejecuta comando rm, el cliente le pide el nombre del archivo y envía una solicitud al NameNode con el nombre del archivo y del usuario.
+2. El NameNode verifica si el archivo pertenece al usuario y, si es válido, elimina la metadata asociada al archivo.
+3. El NameNod envía solicitudes a los DataNodes involucrados para eliminar los bloques del archivo.
+4. Los DataNodes eliminan los bloques y confirman al NameNode.
+5. El NameNode informa al cliente que la eliminación fue exitosa en el sistema distribuido.
+6. El cliente elimina el archivo localmente en la carpeta downloads y confirma que si sucedió.
