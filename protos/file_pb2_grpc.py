@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from . import file_pb2 as file__pb2
+import file_pb2 as file__pb2
 
 GRPC_GENERATED_VERSION = '1.66.1'
 GRPC_VERSION = grpc.__version__
@@ -26,7 +26,8 @@ if _version_not_supported:
 
 
 class NameNodeServiceStub(object):
-    """Missing associated documentation comment in .proto file."""
+    """Servicio para el NameNode
+    """
 
     def __init__(self, channel):
         """Constructor.
@@ -44,15 +45,16 @@ class NameNodeServiceStub(object):
                 request_serializer=file__pb2.RegisterRequest.SerializeToString,
                 response_deserializer=file__pb2.RegisterResponse.FromString,
                 _registered_method=True)
-        self.PutFile = channel.unary_unary(
-                '/dfs.NameNodeService/PutFile',
-                request_serializer=file__pb2.PutFileRequest.SerializeToString,
-                response_deserializer=file__pb2.PutFileResponse.FromString,
+        self.PutFileMetadata = channel.unary_unary(
+                '/dfs.NameNodeService/PutFileMetadata',
+                request_serializer=file__pb2.FileMetadataRequest.SerializeToString,
+                response_deserializer=file__pb2.FileMetadataResponse.FromString,
                 _registered_method=True)
 
 
 class NameNodeServiceServicer(object):
-    """Missing associated documentation comment in .proto file."""
+    """Servicio para el NameNode
+    """
 
     def Authenticate(self, request, context):
         """Missing associated documentation comment in .proto file."""
@@ -66,8 +68,9 @@ class NameNodeServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def PutFile(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+    def PutFileMetadata(self, request, context):
+        """Enviar metadata para asignar DataNodes
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
@@ -85,10 +88,10 @@ def add_NameNodeServiceServicer_to_server(servicer, server):
                     request_deserializer=file__pb2.RegisterRequest.FromString,
                     response_serializer=file__pb2.RegisterResponse.SerializeToString,
             ),
-            'PutFile': grpc.unary_unary_rpc_method_handler(
-                    servicer.PutFile,
-                    request_deserializer=file__pb2.PutFileRequest.FromString,
-                    response_serializer=file__pb2.PutFileResponse.SerializeToString,
+            'PutFileMetadata': grpc.unary_unary_rpc_method_handler(
+                    servicer.PutFileMetadata,
+                    request_deserializer=file__pb2.FileMetadataRequest.FromString,
+                    response_serializer=file__pb2.FileMetadataResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -99,7 +102,8 @@ def add_NameNodeServiceServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class NameNodeService(object):
-    """Missing associated documentation comment in .proto file."""
+    """Servicio para el NameNode
+    """
 
     @staticmethod
     def Authenticate(request,
@@ -156,7 +160,7 @@ class NameNodeService(object):
             _registered_method=True)
 
     @staticmethod
-    def PutFile(request,
+    def PutFileMetadata(request,
             target,
             options=(),
             channel_credentials=None,
@@ -169,9 +173,85 @@ class NameNodeService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/dfs.NameNodeService/PutFile',
-            file__pb2.PutFileRequest.SerializeToString,
-            file__pb2.PutFileResponse.FromString,
+            '/dfs.NameNodeService/PutFileMetadata',
+            file__pb2.FileMetadataRequest.SerializeToString,
+            file__pb2.FileMetadataResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+
+class DataNodeServiceStub(object):
+    """Servicio para el DataNode
+    """
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.StoreBlock = channel.unary_unary(
+                '/dfs.DataNodeService/StoreBlock',
+                request_serializer=file__pb2.StoreBlockRequest.SerializeToString,
+                response_deserializer=file__pb2.StoreBlockResponse.FromString,
+                _registered_method=True)
+
+
+class DataNodeServiceServicer(object):
+    """Servicio para el DataNode
+    """
+
+    def StoreBlock(self, request, context):
+        """Almacenar un bloque en un DataNode
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_DataNodeServiceServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'StoreBlock': grpc.unary_unary_rpc_method_handler(
+                    servicer.StoreBlock,
+                    request_deserializer=file__pb2.StoreBlockRequest.FromString,
+                    response_serializer=file__pb2.StoreBlockResponse.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'dfs.DataNodeService', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+    server.add_registered_method_handlers('dfs.DataNodeService', rpc_method_handlers)
+
+
+ # This class is part of an EXPERIMENTAL API.
+class DataNodeService(object):
+    """Servicio para el DataNode
+    """
+
+    @staticmethod
+    def StoreBlock(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/dfs.DataNodeService/StoreBlock',
+            file__pb2.StoreBlockRequest.SerializeToString,
+            file__pb2.StoreBlockResponse.FromString,
             options,
             channel_credentials,
             insecure,

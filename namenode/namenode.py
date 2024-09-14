@@ -1,8 +1,14 @@
+import sys
 import os
 from concurrent import futures
 import grpc
-import protos.file_pb2 as file_pb2
-import protos.file_pb2_grpc as file_pb2_grpc
+# Agregar la ruta de la carpeta 'protos' al PYTHONPATH
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'protos')))
+
+# Ahora importa ambos módulos
+import file_pb2 as file_pb2
+import file_pb2_grpc as file_pb2_grpc
+
 
 
 class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
@@ -12,6 +18,8 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
             "user1": "pass1",
             "user2": "pass2"
         }
+        self.datanodes = ["127.0.0.1:5001", "127.0.0.1:5002"]  # Cambia DataNode1 y DataNode2 por IPs locales
+
 
     def Authenticate(self, request, context):
         username = request.username
@@ -26,7 +34,24 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
             return file_pb2.RegisterResponse(success=False, message="Usuario ya registrado")
         self.users[request.username] = request.password
         return file_pb2.RegisterResponse(success=True, message="Registro exitoso")
-    
+
+    def PutFileMetadata(self, request, context):
+        filename = request.filename
+        metadata = []
+
+        # Asignar bloques alternadamente entre los DataNodes
+        for block in request.metadata:
+            datanode = self.datanodes[block.block_number % len(self.datanodes)]
+            metadata.append(file_pb2.FileBlockMetadata(
+                block_number=block.block_number,
+                start_byte=block.start_byte,
+                end_byte=block.end_byte,
+                datanode=datanode
+            ))
+
+        # Devolver la metadata con la asignación de DataNodes
+        return file_pb2.FileMetadataResponse(success=True, metadata=metadata)
+
     def PutFile(self, request, context):
         filename = request.filename
         data = request.data
@@ -57,3 +82,4 @@ def serve():
 
 if __name__ == "__main__":
     serve()
+

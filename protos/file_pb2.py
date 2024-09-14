@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\nfile.proto\x12\x03\x64\x66s\"2\n\x0cLoginRequest\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\"1\n\rLoginResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"5\n\x0fRegisterRequest\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\"4\n\x10RegisterResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"0\n\x0ePutFileRequest\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\"3\n\x0fPutFileResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t2\xb7\x01\n\x0fNameNodeService\x12\x35\n\x0c\x41uthenticate\x12\x11.dfs.LoginRequest\x1a\x12.dfs.LoginResponse\x12\x37\n\x08Register\x12\x14.dfs.RegisterRequest\x1a\x15.dfs.RegisterResponse\x12\x34\n\x07PutFile\x12\x13.dfs.PutFileRequest\x1a\x14.dfs.PutFileResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\nfile.proto\x12\x03\x64\x66s\"2\n\x0cLoginRequest\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\"1\n\rLoginResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"5\n\x0fRegisterRequest\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\"4\n\x10RegisterResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"a\n\x11\x46ileBlockMetadata\x12\x14\n\x0c\x62lock_number\x18\x01 \x01(\x05\x12\x12\n\nstart_byte\x18\x02 \x01(\x03\x12\x10\n\x08\x65nd_byte\x18\x03 \x01(\x03\x12\x10\n\x08\x64\x61tanode\x18\x04 \x01(\t\"Q\n\x13\x46ileMetadataRequest\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12(\n\x08metadata\x18\x02 \x03(\x0b\x32\x16.dfs.FileBlockMetadata\"Q\n\x14\x46ileMetadataResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12(\n\x08metadata\x18\x02 \x03(\x0b\x32\x16.dfs.FileBlockMetadata\"I\n\x11StoreBlockRequest\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x14\n\x0c\x62lock_number\x18\x02 \x01(\x05\x12\x0c\n\x04\x64\x61ta\x18\x03 \x01(\x0c\"6\n\x12StoreBlockResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t2\xc9\x01\n\x0fNameNodeService\x12\x35\n\x0c\x41uthenticate\x12\x11.dfs.LoginRequest\x1a\x12.dfs.LoginResponse\x12\x37\n\x08Register\x12\x14.dfs.RegisterRequest\x1a\x15.dfs.RegisterResponse\x12\x46\n\x0fPutFileMetadata\x12\x18.dfs.FileMetadataRequest\x1a\x19.dfs.FileMetadataResponse2P\n\x0f\x44\x61taNodeService\x12=\n\nStoreBlock\x12\x16.dfs.StoreBlockRequest\x1a\x17.dfs.StoreBlockResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -39,10 +39,18 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_REGISTERREQUEST']._serialized_end=175
   _globals['_REGISTERRESPONSE']._serialized_start=177
   _globals['_REGISTERRESPONSE']._serialized_end=229
-  _globals['_PUTFILEREQUEST']._serialized_start=231
-  _globals['_PUTFILEREQUEST']._serialized_end=279
-  _globals['_PUTFILERESPONSE']._serialized_start=281
-  _globals['_PUTFILERESPONSE']._serialized_end=332
-  _globals['_NAMENODESERVICE']._serialized_start=335
-  _globals['_NAMENODESERVICE']._serialized_end=518
+  _globals['_FILEBLOCKMETADATA']._serialized_start=231
+  _globals['_FILEBLOCKMETADATA']._serialized_end=328
+  _globals['_FILEMETADATAREQUEST']._serialized_start=330
+  _globals['_FILEMETADATAREQUEST']._serialized_end=411
+  _globals['_FILEMETADATARESPONSE']._serialized_start=413
+  _globals['_FILEMETADATARESPONSE']._serialized_end=494
+  _globals['_STOREBLOCKREQUEST']._serialized_start=496
+  _globals['_STOREBLOCKREQUEST']._serialized_end=569
+  _globals['_STOREBLOCKRESPONSE']._serialized_start=571
+  _globals['_STOREBLOCKRESPONSE']._serialized_end=625
+  _globals['_NAMENODESERVICE']._serialized_start=628
+  _globals['_NAMENODESERVICE']._serialized_end=829
+  _globals['_DATANODESERVICE']._serialized_start=831
+  _globals['_DATANODESERVICE']._serialized_end=911
 # @@protoc_insertion_point(module_scope)

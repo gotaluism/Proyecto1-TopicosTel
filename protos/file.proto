@@ -2,39 +2,69 @@ syntax = "proto3";
 
 package dfs;
 
-service NameNodeService {
-    rpc Authenticate (LoginRequest) returns (LoginResponse);
-    rpc Register (RegisterRequest) returns (RegisterResponse);
-    rpc PutFile (PutFileRequest) returns (PutFileResponse);
-}
-
+// Mensaje para autenticación de usuario
 message LoginRequest {
-    string username = 1;
-    string password = 2;
+  string username = 1;
+  string password = 2;
 }
 
 message LoginResponse {
-    bool success = 1;
-    string message = 2;
+  bool success = 1;
+  string message = 2;
 }
 
+// Mensaje para registro de nuevos usuarios
 message RegisterRequest {
-    string username = 1;
-    string password = 2;
+  string username = 1;
+  string password = 2;
 }
 
 message RegisterResponse {
-    bool success = 1;
-    string message = 2;
+  bool success = 1;
+  string message = 2;
 }
 
-//Subir archvoos
-message PutFileRequest {
-    string filename = 1;
-    bytes data = 2;
+// Metadata de cada bloque de archivo
+message FileBlockMetadata {
+  int32 block_number = 1;
+  int64 start_byte = 2;
+  int64 end_byte = 3;
+  string datanode = 4;  // DataNode asignado para este bloque
 }
 
-message PutFileResponse {
-    bool success = 1;
-    string message = 2;
+// Solicitud del cliente para enviar la metadata del archivo
+message FileMetadataRequest {
+  string filename = 1;
+  repeated FileBlockMetadata metadata = 2;  // Lista de bloques y su metadata (sin datanode inicialmente)
+}
+
+// Respuesta del NameNode con la metadata completa, incluyendo DataNodes asignados
+message FileMetadataResponse {
+  bool success = 1;
+  repeated FileBlockMetadata metadata = 2;  // Lista de bloques y su metadata con DataNodes
+}
+
+// Solicitud del cliente para enviar un bloque de datos a un DataNode
+message StoreBlockRequest {
+  string filename = 1;
+  int32 block_number = 2;
+  bytes data = 3;
+}
+
+// Respuesta del DataNode tras recibir un bloque
+message StoreBlockResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// Servicio para el NameNode
+service NameNodeService {
+  rpc Authenticate(LoginRequest) returns (LoginResponse);
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc PutFileMetadata(FileMetadataRequest) returns (FileMetadataResponse);  // Enviar metadata para asignar DataNodes
+}
+
+// Servicio para el DataNode
+service DataNodeService {
+  rpc StoreBlock(StoreBlockRequest) returns (StoreBlockResponse);  // Almacenar un bloque en un DataNode
 }
