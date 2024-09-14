@@ -1,6 +1,7 @@
 import os
 import sys
 import grpc
+import shutil
 # Asegurar que la carpeta 'protos' esté en el PYTHONPATH
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'protos')))
 
@@ -146,7 +147,24 @@ class DFSClient:
             print(f"Directorio '{directory}' creado con éxito.")
         else:
             print(f"Error al crear el directorio: {response.message}")
-        
+    
+    def rm(self, filename):
+        request = file_pb2.DeleteFileRequest(username=self.username, filename=filename)
+        response = self.stub.DeleteFile(request)
+
+        if response.success:
+            print(f"Archivo '{filename}' eliminado con éxito del sistema distribuido.")
+            local_path = os.path.join('./downloads', filename)
+            if os.path.exists(local_path):
+                try:
+                    shutil.rmtree(local_path)
+                    print(f"Archivo '{filename}' eliminado también de la carpeta 'downloads' local.")
+                except Exception as e:
+                    print(f"Error al eliminar el archivo '{filename}' de la carpeta 'downloads' local: {str(e)}")
+            else:
+                print(f"El archivo '{filename}' no se encontró en la carpeta 'downloads' local.")
+        else:
+            print(f"Error al eliminar el archivo: {response.message}")
     def send_to_datanode(self, datanode_address, block):
         datanode_channel = grpc.insecure_channel(datanode_address)
         datanode_stub = file_pb2_grpc.DataNodeServiceStub(datanode_channel)
@@ -192,7 +210,8 @@ class DFSClient:
         elif command == "rmdir":
             print("Ejecutando comando 'rmdir'...")
         elif command == "rm":
-            print("Ejecutando comando 'rm'...")
+            filename = input("Ingrese el nombre del archivo a eliminar: ")
+            self.rm(filename)
         elif command == "8":
             print("Saliendo...")
             return False

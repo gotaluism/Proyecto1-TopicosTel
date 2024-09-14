@@ -108,6 +108,29 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
         self.user_directories[username].append(new_dir)
         print(f"Directorio '{new_dir}' creado para el usuario '{username}'")
         return file_pb2.MkdirResponse(success=True, message="Directorio creado con éxito.")
+    
+    
+    
+    def DeleteFile(self, request, context):
+        username = request.username
+        filename = request.filename
+
+        # Verifica si el archivo pertenece al usuario
+        if filename not in self.user_files.get(username, []):
+            return file_pb2.DeleteFileResponse(success=False, message="El archivo no pertenece a este usuario o no existe.")
+
+        self.user_files[username].remove(filename)
+
+        for datanode in self.datanodes:
+            datanode_channel = grpc.insecure_channel(datanode)
+            datanode_stub = file_pb2_grpc.DataNodeServiceStub(datanode_channel)
+
+            delete_request = file_pb2.DeleteBlockRequest(filename=filename)
+            delete_response = datanode_stub.DeleteBlock(delete_request)
+            if not delete_response.success:
+                print(f"Error al eliminar bloques del archivo '{filename}' en DataNode {datanode}: {delete_response.message}")
+
+        return file_pb2.DeleteFileResponse(success=True, message="Archivo eliminado correctamente.")
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     file_pb2_grpc.add_NameNodeServiceServicer_to_server(NameNodeServicer(), server)

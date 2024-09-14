@@ -29,6 +29,32 @@ class DataNodeServicer(file_pb2_grpc.DataNodeServiceServicer):
             return file_pb2.StoreBlockResponse(success=True, message=f"Bloque {block_number} guardado correctamente.")
         except Exception as e:
             return file_pb2.StoreBlockResponse(success=False, message=f"Error al guardar el bloque: {str(e)}")
+        
+        
+    def DeleteBlock(self, request, context):
+        filename = request.filename
+
+        # Definir la ruta a la carpeta donde se guardan los bloques del archivo
+        out_dir = './datanode/downloads'
+        file_dir = os.path.join(out_dir, filename)
+
+        # Verifica si la carpeta del archivo existe
+        if os.path.exists(file_dir):
+            try:
+                # Elimina todos los bloques dentro de la carpeta del archivo
+                for block_file in os.listdir(file_dir):
+                    block_path = os.path.join(file_dir, block_file)
+                    os.remove(block_path)
+
+                # Elimina la carpeta vacía del archivo
+                os.rmdir(file_dir)
+
+                print(f"Bloques del archivo '{filename}' eliminados exitosamente.")
+                return file_pb2.DeleteBlockResponse(success=True, message="Bloques eliminados correctamente.")
+            except Exception as e:
+                return file_pb2.DeleteBlockResponse(success=False, message=f"Error al eliminar bloques: {str(e)}")
+        else:
+            return file_pb2.DeleteBlockResponse(success=False, message="El archivo no existe en este DataNode.")
 def serve(datanode_name, port):
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     file_pb2_grpc.add_DataNodeServiceServicer_to_server(DataNodeServicer(), server)

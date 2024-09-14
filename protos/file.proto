@@ -9,11 +9,13 @@ service NameNodeService {
   rpc PutFileMetadata(FileMetadataRequest) returns (FileMetadataResponse);  // Enviar metadata para asignar DataNodes
   rpc ListFiles(ListFilesRequest) returns (ListFilesResponse);
   rpc Mkdir(MkdirRequest) returns (MkdirResponse);
+  rpc DeleteFile(DeleteFileRequest) returns (DeleteFileResponse);
 }
 
 // Servicio para el DataNode
 service DataNodeService {
   rpc StoreBlock(StoreBlockRequest) returns (StoreBlockResponse);  // Almacenar un bloque en un DataNode
+  rpc DeleteBlock(DeleteBlockRequest) returns (DeleteBlockResponse);
 }
 
 
@@ -91,6 +93,25 @@ message MkdirRequest {
 }
 
 message MkdirResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message DeleteFileRequest {
+    string username = 1;
+    string filename = 2;
+}
+
+message DeleteFileResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message DeleteBlockRequest {
+    string filename = 1;
+}
+
+message DeleteBlockResponse {
     bool success = 1;
     string message = 2;
 }
