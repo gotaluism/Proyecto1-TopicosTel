@@ -1,8 +1,30 @@
 # Proyecto1-TopicosTel
 Vanessa Velez <br>
+Santiago Arias <br>
 Sara Cardona <br>
 Luisa Maria Polanco <br>
 Luis Miguel Giraldo <br>
+
+## MARCO TEORICO
+El sistema de archivos distribuidos (DFS) ha emergido como una solución esencial para la gestión eficiente de grandes volúmenes de datos en aplicaciones distribuidas. Estos sistemas permiten que múltiples nodos almacenen y accedan a archivos, proporcionando alta disponibilidad y tolerancia a fallos. El presente marco teórico integrará diversas perspectivas sobre sistemas de almacenamiento por bloques y objetos, tomando como base referencias clave como el Google File System (GFS), el Hadoop Distributed File System (HDFS) y otras teorías actuales sobre el manejo de datos históricos.
+
+El almacenamiento basado en bloques divide los archivos en pequeñas unidades que se distribuyen a lo largo de varios nodos. Este enfoque es eficiente para operaciones de lectura y escritura paralelas, ya que permite que diferentes partes de un archivo sean procesadas simultáneamente en diferentes nodos, mejorando el rendimiento del sistema. GFS es uno de los ejemplos más destacados de este modelo, utilizando bloques grandes de 64 MB para reducir la sobrecarga en la comunicación y optimizar la replicación y recuperación de fallos. Cada bloque es replicado en al menos tres servidores, lo que garantiza la durabilidad de los datos incluso en caso de fallos en el hardware.
+
+
+En el caso de HDFS, desarrollado como parte del proyecto Hadoop, se utiliza un enfoque similar, pero con bloques de 128 MB. Este tamaño mayor responde a las necesidades de procesamiento masivo de datos, donde las operaciones de lectura/escritura secuenciales son más frecuentes. Al igual que GFS, HDFS está diseñado para manejar fallos frecuentes de componentes, replicando los datos en varios nodos para garantizar su disponibilidad. Además, Hadoop, al ser un proyecto open source, se ha convertido en una pieza clave del ecosistema de Big Data, con herramientas como MapReduce y YARN que permiten el procesamiento distribuido eficiente.
+
+![image](https://github.com/user-attachments/assets/1d979cc5-5e71-49a0-9faf-6ddc249417d2)
+
+
+No obstante, una tendencia emergente en la gestión de datos es evitar la actualización directa de las entidades almacenadas en bases de datos. Históricamente, la motivación para actualizar los datos radicaba en los altos costos del almacenamiento. Sin embargo, con la reducción significativa en los costos del espacio en disco, hoy es factible adoptar un enfoque de registro de cambios. En lugar de sobrescribir entidades, se registra cada nueva entrada como una versión más, manteniendo un historial completo de cambios. Este enfoque ofrece varias ventajas, como la preservación de la línea de tiempo de los datos. Si se desea conocer el origen o las transformaciones de una entidad, se puede revisar su versión anterior. Además, en caso de que ocurra un error con la versión más reciente, se puede restaurar una versión previa sin una pérdida significativa de estado.
+
+Este enfoque de mantener versiones históricas incrementa la resiliencia del sistema, minimizando los riesgos asociados con la pérdida de datos durante actualizaciones. En lugar de sobrescribir las entidades, los sistemas distribuidos actuales se benefician de esta técnica, logrando un equilibrio entre la eficiencia y la fiabilidad.
+
+El almacenamiento basado en objetos, como el utilizado en Amazon S3, también sigue este enfoque de registro de cambios, manteniendo versiones completas de los archivos a lo largo del tiempo. Este modelo es ideal para escenarios donde los datos se escriben una vez y se leen múltiples veces (modelo WORM). Aunque sacrifica la flexibilidad para modificaciones parciales, ofrece escalabilidad y trazabilidad de cambios a gran escala, haciendo de él una solución robusta para necesidades de almacenamiento distribuido.
+
+
+
+Palabras clave: Sistemas de archivos distribuidos, GFS, HDFS, almacenamiento por bloques, almacenamiento por objetos, tolerancia a fallos, escalabilidad.
 
 ## Arquitectura del Sistema
 
