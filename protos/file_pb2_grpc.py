@@ -50,6 +50,16 @@ class NameNodeServiceStub(object):
                 request_serializer=file__pb2.FileMetadataRequest.SerializeToString,
                 response_deserializer=file__pb2.FileMetadataResponse.FromString,
                 _registered_method=True)
+        self.ListFiles = channel.unary_unary(
+                '/dfs.NameNodeService/ListFiles',
+                request_serializer=file__pb2.ListFilesRequest.SerializeToString,
+                response_deserializer=file__pb2.ListFilesResponse.FromString,
+                _registered_method=True)
+        self.Mkdir = channel.unary_unary(
+                '/dfs.NameNodeService/Mkdir',
+                request_serializer=file__pb2.MkdirRequest.SerializeToString,
+                response_deserializer=file__pb2.MkdirResponse.FromString,
+                _registered_method=True)
 
 
 class NameNodeServiceServicer(object):
@@ -75,6 +85,18 @@ class NameNodeServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def ListFiles(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Mkdir(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_NameNodeServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -92,6 +114,16 @@ def add_NameNodeServiceServicer_to_server(servicer, server):
                     servicer.PutFileMetadata,
                     request_deserializer=file__pb2.FileMetadataRequest.FromString,
                     response_serializer=file__pb2.FileMetadataResponse.SerializeToString,
+            ),
+            'ListFiles': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListFiles,
+                    request_deserializer=file__pb2.ListFilesRequest.FromString,
+                    response_serializer=file__pb2.ListFilesResponse.SerializeToString,
+            ),
+            'Mkdir': grpc.unary_unary_rpc_method_handler(
+                    servicer.Mkdir,
+                    request_deserializer=file__pb2.MkdirRequest.FromString,
+                    response_serializer=file__pb2.MkdirResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -176,6 +208,60 @@ class NameNodeService(object):
             '/dfs.NameNodeService/PutFileMetadata',
             file__pb2.FileMetadataRequest.SerializeToString,
             file__pb2.FileMetadataResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ListFiles(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/dfs.NameNodeService/ListFiles',
+            file__pb2.ListFilesRequest.SerializeToString,
+            file__pb2.ListFilesResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def Mkdir(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/dfs.NameNodeService/Mkdir',
+            file__pb2.MkdirRequest.SerializeToString,
+            file__pb2.MkdirResponse.FromString,
             options,
             channel_credentials,
             insecure,

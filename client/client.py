@@ -11,12 +11,14 @@ class DFSClient:
     def __init__(self, namenode_host, namenode_port):
         self.channel = grpc.insecure_channel(f'{namenode_host}:{namenode_port}')
         self.stub = file_pb2_grpc.NameNodeServiceStub(self.channel)
+        self.username = None
 
     def authenticate(self, username, password):
         request = file_pb2.LoginRequest(username=username, password=password)
         response = self.stub.Authenticate(request)
         if response.success:
             print(f"Autenticación exitosa: {response.message}")
+            self.username = username
             return True
         else:
             print(f"Autenticación fallida: {response.message}")
@@ -94,6 +96,7 @@ class DFSClient:
         # Enviar metadata al NameNode
         metadata_request = file_pb2.FileMetadataRequest(
             filename=filename,
+            username=self.username,
             metadata=[file_pb2.FileBlockMetadata(
                 block_number=block['block_number'],
                 start_byte=block['start_byte'],
@@ -113,6 +116,37 @@ class DFSClient:
 
         return True
 
+    def ls(self):
+        if self.username is None:
+            print("No hay un usuario autenticado.")
+            return
+    
+        request = file_pb2.ListFilesRequest(username=self.username)
+        response = self.stub.ListFiles(request)
+
+        if response.success:
+            print("Archivos del usuario:")
+            for filename in response.filenames:
+                print(filename)
+        else:
+            print(f"Error al obtener lista de archivos: {response.message}")
+        
+        
+    def mkdir(self, directory):
+        directory = directory.strip()
+
+        if not directory:
+            print("Error: El nombre del directorio no puede estar vacío.")
+            return
+
+        request = file_pb2.MkdirRequest(username=self.username, directory=directory)
+        response = self.stub.Mkdir(request)
+
+        if response.success:
+            print(f"Directorio '{directory}' creado con éxito.")
+        else:
+            print(f"Error al crear el directorio: {response.message}")
+        
     def send_to_datanode(self, datanode_address, block):
         datanode_channel = grpc.insecure_channel(datanode_address)
         datanode_stub = file_pb2_grpc.DataNodeServiceStub(datanode_channel)
@@ -143,7 +177,7 @@ class DFSClient:
 
     def execute_command(self, command):
         if command == "ls":
-            print("Ejecutando comando 'ls'...")
+            self.ls()
         elif command == "cd":
             print("Ejecutando comando 'cd'...")
         elif command == "get":
@@ -153,7 +187,8 @@ class DFSClient:
             self.put(filepath)
 
         elif command == "mkdir":
-            print("Ejecutando comando 'mkdir'...")
+            directory = input("Ingrese el nombre del directorio a crear: ")
+            self.mkdir(directory)
         elif command == "rmdir":
             print("Ejecutando comando 'rmdir'...")
         elif command == "rm":
