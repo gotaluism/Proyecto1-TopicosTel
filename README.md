@@ -27,6 +27,7 @@ El almacenamiento basado en objetos, como el utilizado en Amazon S3, también si
 Palabras clave: Sistemas de archivos distribuidos, GFS, HDFS, almacenamiento por bloques, almacenamiento por objetos, tolerancia a fallos, escalabilidad.
 
 ## Arquitectura del Sistema
+![Arquitectura HDFS Proyecto Telematica](https://github.com/user-attachments/assets/fe5921cc-a005-47c1-8873-e9f28d6e07d9)
 
 ## Protocolos: gRPC (HTTP/2)
 #### Cliente <-> NameNode
