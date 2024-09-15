@@ -39,6 +39,7 @@ Palabras clave: Sistemas de archivos distribuidos, GFS, HDFS, almacenamiento por
 - DeleteFile
 - GetFile
 - DeleteDirectory
+- Metadata table
 
 #### Cliente <-> DataNode
 - StoreBlock
@@ -47,9 +48,13 @@ Palabras clave: Sistemas de archivos distribuidos, GFS, HDFS, almacenamiento por
 #### NameNode <-> DataNode
 - DeleteBlocksDirectory
   
-o	NameNode <-> NameNode: gRPC (HTTP/2)  <br>
-o	NameNode <-> DataNode: gRPC (HTTP/2)   <br>
-o	DataNode <-> NameNode: gRPC (HTTP/2)   <br>
+
+### NameNode <-> DataNode
+- Heartbeats
+- Handshake
+- Block Reports
+- Replication Management
+
 o	DataNode <-> DataNode: RPC (HTTP/2)   <br>
 
 
@@ -125,3 +130,31 @@ Secuencia:
 5. Los DataNodes eliminan los bloques y confirman al NameNode.
 6. El NameNode informa al cliente que la eliminación fue exitosa en el sistema distribuido.
 7. El cliente elimina la carpeta localmente en la carpeta downloads y confirma que si sucedió.
+
+## Servicios Namenode
+
+### Gestión de tabla metadata
+Secuencia:
+1. El NameNode gestiona la tabla de metadata, la cual contiene la ubicación de todos los bloques de los archivos distribuidos en los DataNodes.
+2. Cada vez que un archivo se agrega, modifica o elimina, el NameNode actualiza la tabla de metadata para reflejar los cambios.
+3. El NameNode recibe información periódica de los DataNodes (a través de Block Reports) para verificar que los bloques estén correctamente distribuidos y almacenados.
+4. El NameNode utiliza la tabla de metadata para determinar qué bloques enviar o eliminar cuando un cliente solicita operaciones sobre archivos.
+5. En caso de pérdida de un DataNode, el NameNode reasigna los bloques perdidos a otros DataNodes y actualiza su tabla de metadata.
+
+### Reporte de bloques (Block Report)
+Secuencia:
+l. DataNode envía informes periódicos al NameNode con la lista de bloques que está almacenando.
+2. NameNode actualiza su tabla de metadata en base a estos informes para garantizar que los bloques estén almacenados correctamente.
+3. NameNode usa esta información para gestionar la replicación y detectar fallas en los DataNodes.
+
+### Heartbeat
+Secuencia:
+1. Los DataNodes envían señales regulares de heartbeat al NameNode para indicar que están activos y en funcionamiento.
+2. Si el NameNode deja de recibir heartbeats de un DataNode dentro de un periodo determinado, considera que el DataNode ha fallado.
+3. El NameNode reprograma la replicación de los bloques almacenados en ese DataNode en otros nodos disponibles.
+
+### Handshake (inicio de comunicación)
+Secuencia:
+1. Cuando un DataNode arranca, se registra en el NameNode enviando un mensaje de "handshake".
+2. El NameNode verifica la identidad del DataNode y lo registra en su sistema.
+3. El DataNode comienza a enviar heartbeats y reportes de bloques al NameNode de manera regular.
