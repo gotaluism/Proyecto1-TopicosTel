@@ -161,8 +161,6 @@ Secuencia:
 
 ## Servicios DataNode
 
-### Almacenamiento y Gestión de Bloques
-
 #### Recepción de Bloques:
 Secuencia:
 1. El DataNode recibe bloques de datos enviados por el cliente.
@@ -180,8 +178,6 @@ Secuencia:
 2. Elimina los bloques solicitados de su almacenamiento local.
 3. Actualiza su metadata para reflejar la eliminación de los bloques.
 
-### Respuesta a Solicitudes de Lectura y Escritura
-
 #### Solicitud de Lectura de Bloques:
 Secuencia:
 1. Recibe una solicitud de lectura de un cliente para un bloque específico.
@@ -194,8 +190,6 @@ Secuencia:
 2. Verifica la integridad del bloque recibido y lo almacena.
 3. Envía una confirmación al cliente de que el bloque ha sido almacenado con éxito.
 
-### Reportes y Heartbeats
-
 #### Block Report (Reporte de Bloques):
 Secuencia:
 1. Envía periódicamente un Block Report al NameNode.
@@ -207,8 +201,6 @@ Secuencia:
 1. Envía señales de heartbeat regulares al NameNode para confirmar que está activo y funcionando.
 2. Incluye información adicional como el estado de almacenamiento y la capacidad disponible.
 
-### Registro y Comunicación Inicial
-
 #### Handshake (Inicio de Comunicación):
 Secuencia:
 1. Cuando el DataNode se inicia, realiza un handshake con el NameNode.
@@ -219,8 +211,6 @@ Secuencia:
 Secuencia:
 1. Después del handshake, el DataNode se registra oficialmente en el sistema del NameNode.
 2. Comienza a enviar heartbeats y block reports según lo requiera el NameNode.
-
-### Mantenimiento y Recuperación
 
 #### Mantenimiento de Integridad de Datos:
 Secuencia:
