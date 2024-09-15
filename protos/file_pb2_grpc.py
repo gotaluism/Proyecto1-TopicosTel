@@ -50,6 +50,21 @@ class NameNodeServiceStub(object):
                 request_serializer=file__pb2.FileMetadataRequest.SerializeToString,
                 response_deserializer=file__pb2.FileMetadataResponse.FromString,
                 _registered_method=True)
+        self.ListFiles = channel.unary_unary(
+                '/dfs.NameNodeService/ListFiles',
+                request_serializer=file__pb2.ListFilesRequest.SerializeToString,
+                response_deserializer=file__pb2.ListFilesResponse.FromString,
+                _registered_method=True)
+        self.Mkdir = channel.unary_unary(
+                '/dfs.NameNodeService/Mkdir',
+                request_serializer=file__pb2.MkdirRequest.SerializeToString,
+                response_deserializer=file__pb2.MkdirResponse.FromString,
+                _registered_method=True)
+        self.DeleteFile = channel.unary_unary(
+                '/dfs.NameNodeService/DeleteFile',
+                request_serializer=file__pb2.DeleteFileRequest.SerializeToString,
+                response_deserializer=file__pb2.DeleteFileResponse.FromString,
+                _registered_method=True)
 
 
 class NameNodeServiceServicer(object):
@@ -75,6 +90,24 @@ class NameNodeServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def ListFiles(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Mkdir(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def DeleteFile(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_NameNodeServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -92,6 +125,21 @@ def add_NameNodeServiceServicer_to_server(servicer, server):
                     servicer.PutFileMetadata,
                     request_deserializer=file__pb2.FileMetadataRequest.FromString,
                     response_serializer=file__pb2.FileMetadataResponse.SerializeToString,
+            ),
+            'ListFiles': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListFiles,
+                    request_deserializer=file__pb2.ListFilesRequest.FromString,
+                    response_serializer=file__pb2.ListFilesResponse.SerializeToString,
+            ),
+            'Mkdir': grpc.unary_unary_rpc_method_handler(
+                    servicer.Mkdir,
+                    request_deserializer=file__pb2.MkdirRequest.FromString,
+                    response_serializer=file__pb2.MkdirResponse.SerializeToString,
+            ),
+            'DeleteFile': grpc.unary_unary_rpc_method_handler(
+                    servicer.DeleteFile,
+                    request_deserializer=file__pb2.DeleteFileRequest.FromString,
+                    response_serializer=file__pb2.DeleteFileResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -186,6 +234,87 @@ class NameNodeService(object):
             metadata,
             _registered_method=True)
 
+    @staticmethod
+    def ListFiles(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/dfs.NameNodeService/ListFiles',
+            file__pb2.ListFilesRequest.SerializeToString,
+            file__pb2.ListFilesResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def Mkdir(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/dfs.NameNodeService/Mkdir',
+            file__pb2.MkdirRequest.SerializeToString,
+            file__pb2.MkdirResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def DeleteFile(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/dfs.NameNodeService/DeleteFile',
+            file__pb2.DeleteFileRequest.SerializeToString,
+            file__pb2.DeleteFileResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
 
 class DataNodeServiceStub(object):
     """Servicio para el DataNode
@@ -202,6 +331,11 @@ class DataNodeServiceStub(object):
                 request_serializer=file__pb2.StoreBlockRequest.SerializeToString,
                 response_deserializer=file__pb2.StoreBlockResponse.FromString,
                 _registered_method=True)
+        self.DeleteBlock = channel.unary_unary(
+                '/dfs.DataNodeService/DeleteBlock',
+                request_serializer=file__pb2.DeleteBlockRequest.SerializeToString,
+                response_deserializer=file__pb2.DeleteBlockResponse.FromString,
+                _registered_method=True)
 
 
 class DataNodeServiceServicer(object):
@@ -215,6 +349,12 @@ class DataNodeServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def DeleteBlock(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_DataNodeServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -222,6 +362,11 @@ def add_DataNodeServiceServicer_to_server(servicer, server):
                     servicer.StoreBlock,
                     request_deserializer=file__pb2.StoreBlockRequest.FromString,
                     response_serializer=file__pb2.StoreBlockResponse.SerializeToString,
+            ),
+            'DeleteBlock': grpc.unary_unary_rpc_method_handler(
+                    servicer.DeleteBlock,
+                    request_deserializer=file__pb2.DeleteBlockRequest.FromString,
+                    response_serializer=file__pb2.DeleteBlockResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -252,6 +397,33 @@ class DataNodeService(object):
             '/dfs.DataNodeService/StoreBlock',
             file__pb2.StoreBlockRequest.SerializeToString,
             file__pb2.StoreBlockResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def DeleteBlock(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/dfs.DataNodeService/DeleteBlock',
+            file__pb2.DeleteBlockRequest.SerializeToString,
+            file__pb2.DeleteBlockResponse.FromString,
             options,
             channel_credentials,
             insecure,

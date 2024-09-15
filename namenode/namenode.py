@@ -18,9 +18,14 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
             "user1": "pass1",
             "user2": "pass2"
         }
-        self.datanodes = ["127.0.0.1:5001", "127.0.0.1:5002"]  # Cambia DataNode1 y DataNode2 por IPs locales
+        self.datanodes = ["127.0.0.1:5001"]  # Cambia DataNode1 y DataNode2 por IPs locales
+        self.user_files = {}
+        self.user_directories = {}
 
 
+        for user in self.users:
+            self.user_directories[user] = []
+            
     def Authenticate(self, request, context):
         username = request.username
         password = request.password
@@ -37,9 +42,10 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
 
     def PutFileMetadata(self, request, context):
         filename = request.filename
+        username = request.username
         metadata = []
 
-        # Asignar bloques alternadamente entre los DataNodes
+
         for block in request.metadata:
             datanode = self.datanodes[block.block_number % len(self.datanodes)]
             metadata.append(file_pb2.FileBlockMetadata(
@@ -49,29 +55,82 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
                 datanode=datanode
             ))
 
-        # Devolver la metadata con la asignación de DataNodes
+
+        if username not in self.user_files:
+            self.user_files[username] = []
+        self.user_files[username].append(filename)
+
         return file_pb2.FileMetadataResponse(success=True, metadata=metadata)
 
     def PutFile(self, request, context):
         filename = request.filename
         data = request.data
+        out_dir = './downloads'
 
-        # Crear directorios si no existen (según la ruta completa recibida del cliente)
-        file_dir = os.path.dirname(filename)
+        file_dir = os.path.join(out_dir, os.path.dirname(filename))
         if not os.path.exists(file_dir):
             os.makedirs(file_dir)
 
         try:
-            # Guardar el bloque en la ruta especificada por el cliente
-            with open(filename, 'wb') as f:
+
+            file_path = os.path.join(file_dir, os.path.basename(filename))
+
+            with open(file_path, 'wb') as f:
                 f.write(data)
 
-            print(f"Bloque recibido y guardado en: {filename}")
-            return file_pb2.PutFileResponse(success=True, message=f"Bloque {filename} recibido con éxito.")
+            print(f"Bloque recibido y guardado en: {file_path}")
+            return file_pb2.PutFileResponse(success=True, message=f"Bloque {file_path} recibido con éxito.")
         
         except Exception as e:
             return file_pb2.PutFileResponse(success=False, message=f"Error al guardar el bloque: {str(e)}")
 
+    def ListFiles(self, request, context):
+        username = request.username
+        if username in self.user_files:
+            return file_pb2.ListFilesResponse(success=True, filenames=self.user_files[username])
+        else:
+            return file_pb2.ListFilesResponse(success=False, message="El usuario no tiene archivos.")
+
+    
+    def Mkdir(self, request, context):
+        username = request.username
+        new_dir = request.directory
+        print(f"Solicitud de mkdir para el usuario: {username}, directorio: {new_dir}")
+        
+        
+        if not username or not new_dir:
+            print(f"Error: datos inválidos en la solicitud. Username: '{username}', Directorio: '{new_dir}'")
+            return file_pb2.MkdirResponse(success=False, message="Datos inválidos.")
+        
+        if new_dir in self.user_directories[username]:
+            return file_pb2.MkdirResponse(success=False, message="El directorio ya existe.")
+
+        self.user_directories[username].append(new_dir)
+        print(f"Directorio '{new_dir}' creado para el usuario '{username}'")
+        return file_pb2.MkdirResponse(success=True, message="Directorio creado con éxito.")
+    
+    
+    
+    def DeleteFile(self, request, context):
+        username = request.username
+        filename = request.filename
+
+        # Verifica si el archivo pertenece al usuario
+        if filename not in self.user_files.get(username, []):
+            return file_pb2.DeleteFileResponse(success=False, message="El archivo no pertenece a este usuario o no existe.")
+
+        self.user_files[username].remove(filename)
+
+        for datanode in self.datanodes:
+            datanode_channel = grpc.insecure_channel(datanode)
+            datanode_stub = file_pb2_grpc.DataNodeServiceStub(datanode_channel)
+
+            delete_request = file_pb2.DeleteBlockRequest(filename=filename)
+            delete_response = datanode_stub.DeleteBlock(delete_request)
+            if not delete_response.success:
+                print(f"Error al eliminar bloques del archivo '{filename}' en DataNode {datanode}: {delete_response.message}")
+
+        return file_pb2.DeleteFileResponse(success=True, message="Archivo eliminado correctamente.")
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     file_pb2_grpc.add_NameNodeServiceServicer_to_server(NameNodeServicer(), server)
