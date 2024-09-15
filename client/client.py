@@ -1,11 +1,13 @@
 import os
 import sys
 import grpc
+import file_pb2 as file_pb2
+import file_pb2_grpc as file_pb2_grpc
+
+
 # Asegurar que la carpeta 'protos' esté en el PYTHONPATH
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'protos')))
 
-import file_pb2 as file_pb2
-import file_pb2_grpc as file_pb2_grpc
 
 class DFSClient:
     def __init__(self, namenode_host, namenode_port):
