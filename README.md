@@ -158,3 +158,77 @@ Secuencia:
 1. Cuando un DataNode arranca, se registra en el NameNode enviando un mensaje de "handshake".
 2. El NameNode verifica la identidad del DataNode y lo registra en su sistema.
 3. El DataNode comienza a enviar heartbeats y reportes de bloques al NameNode de manera regular.
+
+## Servicios DataNode
+
+### Almacenamiento y Gestión de Bloques
+
+#### Recepción de Bloques:
+Secuencia:
+1. El DataNode recibe bloques de datos enviados por el cliente.
+2. Verifica la integridad del bloque mediante un checksum.
+3. Almacena el bloque en el almacenamiento local (disco).
+   
+#### Actualización de Metadata Local:
+Secuencia:
+1. Actualiza su propia metadata para reflejar los bloques almacenados y su integridad.
+2. Mantiene una lista de los bloques que está almacenando para el reporte al NameNode.
+
+#### Eliminación de Bloques:
+Secuencia:
+1. Recibe solicitudes del NameNode para eliminar bloques específicos.
+2. Elimina los bloques solicitados de su almacenamiento local.
+3. Actualiza su metadata para reflejar la eliminación de los bloques.
+
+### Respuesta a Solicitudes de Lectura y Escritura
+
+#### Solicitud de Lectura de Bloques:
+Secuencia:
+1. Recibe una solicitud de lectura de un cliente para un bloque específico.
+2. Verifica que el bloque solicitado esté disponible y no esté dañado.
+3. Envía el bloque solicitado al cliente.
+   
+#### Solicitud de Escritura de Bloques:
+Secuencia:
+1. Recibe un bloque para almacenar desde un cliente.
+2. Verifica la integridad del bloque recibido y lo almacena.
+3. Envía una confirmación al cliente de que el bloque ha sido almacenado con éxito.
+
+### Reportes y Heartbeats
+
+#### Block Report (Reporte de Bloques):
+Secuencia:
+1. Envía periódicamente un Block Report al NameNode.
+2. El reporte contiene la lista de bloques almacenados, su ubicación, y su estado de integridad.
+3. Permite al NameNode actualizar su tabla de metadata y realizar la gestión de replicación.
+   
+#### Heartbeat (Latido del Corazón):
+Secuencia:
+1. Envía señales de heartbeat regulares al NameNode para confirmar que está activo y funcionando.
+2. Incluye información adicional como el estado de almacenamiento y la capacidad disponible.
+
+### Registro y Comunicación Inicial
+
+#### Handshake (Inicio de Comunicación):
+Secuencia:
+1. Cuando el DataNode se inicia, realiza un handshake con el NameNode.
+2. Envía un mensaje de registro al NameNode con información sobre su identidad y capacidad.
+3. El NameNode valida al DataNode y lo incluye en su lista de nodos activos.
+   
+#### Registro en el Sistema:
+Secuencia:
+1. Después del handshake, el DataNode se registra oficialmente en el sistema del NameNode.
+2. Comienza a enviar heartbeats y block reports según lo requiera el NameNode.
+
+### Mantenimiento y Recuperación
+
+#### Mantenimiento de Integridad de Datos:
+Secuencia:
+1.Realiza chequeos periódicos de integridad de los bloques almacenados.
+2. Detecta y corrige errores si es posible o informa al NameNode sobre bloques dañados.
+
+#### Recuperación ante Fallos:
+Secuencia:
+1. Participa en el proceso de recuperación de datos en caso de fallo.
+2. Reemplaza los bloques que faltan o están dañados según las instrucciones del NameNode.
+
