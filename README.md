@@ -39,9 +39,28 @@ o	DataNode <-> DataNode: RPC (HTTP/2)   <br>
 
 # Diseño detallado
 
+#### NameNode <-> DataNode
+- DeleteBlocksDirectory
 
+  
 ## Servicios cliente
 
+### Servicios gRPC
+
+#### Cliente <-> NameNode
+- Authenticate
+- Register
+- PutFileMetadata
+- ListFiles
+- Mkdir
+- DeleteFile
+- GetFile
+- DeleteDirectory
+
+#### Cliente <-> DataNode
+- StoreBlock
+- GetBlock
+  
 ### Autenticación (login)
 Secuencia:
 1. El cliente envía una solicitud al NameNode que contiene usuario y contraseña.
@@ -60,7 +79,7 @@ Secuencia:
 7. Una vez que todos los bloques han sido enviados y confirmados, el cliente notifica al NameNode que la operación ha finalizado.
 8. El NameNode actualiza su metadata para registrar los bloques del archivo y su ubicación en los DataNodes.
 
-### Comando ls (Visualizar archivos en directorio arctual)
+### Comando ls (Visualizar archivos en directorio actual)
 Secuencia:
 1. El cliente envía una solicitud al NameNode solicitando la lista de archivos del directorio actual.
 2. El NameNode recibe la solicitud, verifica el directorio del cliente, y busca los archivos y directorios correspondientes.
@@ -76,3 +95,34 @@ Secuencia:
 4. Los DataNodes eliminan los bloques y confirman al NameNode.
 5. El NameNode informa al cliente que la eliminación fue exitosa en el sistema distribuido.
 6. El cliente elimina el archivo localmente en la carpeta downloads y confirma que si sucedió.
+
+### Comando get (Obtener un archivo especifico)
+Secuencia:
+
+1. El cliente ejecuta el comando get y se le pide el nombre del archivo que desea obtener.
+2. El cliente envía una solicitud al NameNode solicitando el archivo especificado.
+3. El NameNode recibe la solicitud, verifica el acceso del cliente a este archivo, y busca que DataNodes contienen los bloques asociados a este archivo.
+4. El NameNode responde al cliente con una lista de las url de los dataNodes que tienen los bloques que forman el archivo y el nombre del recurso que debe buscar en ellos.
+5. El cliente recibe la lista de urls y envia una petición a cada DataNode preguntando por el recurso que le dijo el NameNode.
+6. Los DataNode responden con el bloque solicitado.
+7. El cliente arma el archivo con los bloques enviados por los DataNodes.
+
+### Comando cd (Realizar acciones desde una ruta especifica)
+Secuencia:
+1. El cliente ejecuta el comando cd y se le pide el nombre del directorio creado al cual quiere ingresar.
+2. Esta nueva ruta sera usada para las peticiones de consulta o adición de archivos.
+
+### Comando mkdir (Crear carpeta)
+Secuencia:
+1. El cliente ejecuta el comando mkdir y se le pide el nombre de la carpeta que desea crear.
+2. Esta carpeta se creará en el sistema de archivos del cliente y será usada como ruta para adición de archivos.
+
+### Comando rmdir (Eliminar carpeta)
+Secuencia:
+1. El cliente ejecuta el comando rmdir y se le pide el nombre de la carpeta que desea eliminar.
+2. El cliente envía una solicitud al NameNode con el nombre de la carpeta y del usuario.
+3. El NameNode verifica si la carpeta pertenece al usuario y, si es válido, elimina la metadata asociada a la carpeta.
+4. El NameNode envía solicitudes a los DataNodes involucrados para eliminar los bloques asociados a la carpeta que desea eliminar.
+5. Los DataNodes eliminan los bloques y confirman al NameNode.
+6. El NameNode informa al cliente que la eliminación fue exitosa en el sistema distribuido.
+7. El cliente elimina la carpeta localmente en la carpeta downloads y confirma que si sucedió.
