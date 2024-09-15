@@ -28,25 +28,7 @@ Palabras clave: Sistemas de archivos distribuidos, GFS, HDFS, almacenamiento por
 
 ## Arquitectura del Sistema
 
-## Protocolos
-o	Cliente <-> NameNode: gRPC (HTTP/2) <br>
-o	NameNode <-> NameNode: gRPC (HTTP/2)  <br>
-o	NameNode <-> DataNode: gRPC (HTTP/2)   <br>
-o	DataNode <-> NameNode: gRPC (HTTP/2)   <br>
-o	DataNode <-> DataNode: RPC (HTTP/2)   <br>
-
-
-
-# Diseño detallado
-
-#### NameNode <-> DataNode
-- DeleteBlocksDirectory
-
-  
-## Servicios cliente
-
-### Servicios gRPC
-
+## Protocolos: gRPC (HTTP/2)
 #### Cliente <-> NameNode
 - Authenticate
 - Register
@@ -60,7 +42,23 @@ o	DataNode <-> DataNode: RPC (HTTP/2)   <br>
 #### Cliente <-> DataNode
 - StoreBlock
 - GetBlock
+
+#### NameNode <-> DataNode
+- DeleteBlocksDirectory
   
+o	NameNode <-> NameNode: gRPC (HTTP/2)  <br>
+o	NameNode <-> DataNode: gRPC (HTTP/2)   <br>
+o	DataNode <-> NameNode: gRPC (HTTP/2)   <br>
+o	DataNode <-> DataNode: RPC (HTTP/2)   <br>
+
+
+# Diseño detallado
+
+
+
+  
+## Servicios cliente
+
 ### Autenticación (login)
 Secuencia:
 1. El cliente envía una solicitud al NameNode que contiene usuario y contraseña.
