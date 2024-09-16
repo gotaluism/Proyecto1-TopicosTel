@@ -27,19 +27,37 @@ El almacenamiento basado en objetos, como el utilizado en Amazon S3, también si
 Palabras clave: Sistemas de archivos distribuidos, GFS, HDFS, almacenamiento por bloques, almacenamiento por objetos, tolerancia a fallos, escalabilidad.
 
 ## Arquitectura del Sistema
-
-## Protocolos
-o	Cliente <-> NameNode: gRPC (HTTP/2) <br>
-o	NameNode <-> NameNode: gRPC (HTTP/2)  <br>
-o	NameNode <-> DataNode: gRPC (HTTP/2)   <br>
-o	DataNode <-> NameNode: gRPC (HTTP/2)   <br>
-o	DataNode <-> DataNode: RPC (HTTP/2)   <br>
+![Arquitectura HDFS Proyecto Telematica](https://github.com/user-attachments/assets/fe5921cc-a005-47c1-8873-e9f28d6e07d9)
 
 
+## Protocolos: gRPC (HTTP/2)
+#### Cliente <-> NameNode
+- Authenticate
+- Register
+- PutFileMetadata
+- ListFiles
+- Mkdir
+- DeleteFile
+- GetFile
+- DeleteDirectory
+- Metadata table
+
+#### Cliente <-> DataNode
+- StoreBlock
+- GetBlock
+  
+#### NameNode <-> DataNode
+- Heartbeats
+- Handshake
+- Block Reports
+- Replication Management
+- DeleteBlocksDirectory
+
+####	DataNode <-> DataNode
+- Blocks Replication
 
 # Diseño detallado
-
-
+  
 ## Servicios cliente
 
 ### Autenticación (login)
@@ -60,7 +78,7 @@ Secuencia:
 7. Una vez que todos los bloques han sido enviados y confirmados, el cliente notifica al NameNode que la operación ha finalizado.
 8. El NameNode actualiza su metadata para registrar los bloques del archivo y su ubicación en los DataNodes.
 
-### Comando ls (Visualizar archivos en directorio arctual)
+### Comando ls (Visualizar archivos en directorio actual)
 Secuencia:
 1. El cliente envía una solicitud al NameNode solicitando la lista de archivos del directorio actual.
 2. El NameNode recibe la solicitud, verifica el directorio del cliente, y busca los archivos y directorios correspondientes.
@@ -76,3 +94,126 @@ Secuencia:
 4. Los DataNodes eliminan los bloques y confirman al NameNode.
 5. El NameNode informa al cliente que la eliminación fue exitosa en el sistema distribuido.
 6. El cliente elimina el archivo localmente en la carpeta downloads y confirma que si sucedió.
+
+### Comando get (Obtener un archivo especifico)
+Secuencia:
+
+1. El cliente ejecuta el comando get y se le pide el nombre del archivo que desea obtener.
+2. El cliente envía una solicitud al NameNode solicitando el archivo especificado.
+3. El NameNode recibe la solicitud, verifica el acceso del cliente a este archivo, y busca que DataNodes contienen los bloques asociados a este archivo.
+4. El NameNode responde al cliente con una lista de las url de los dataNodes que tienen los bloques que forman el archivo y el nombre del recurso que debe buscar en ellos.
+5. El cliente recibe la lista de urls y envia una petición a cada DataNode preguntando por el recurso que le dijo el NameNode.
+6. Los DataNode responden con el bloque solicitado.
+7. El cliente arma el archivo con los bloques enviados por los DataNodes.
+
+### Comando cd (Realizar acciones desde una ruta especifica)
+Secuencia:
+1. El cliente ejecuta el comando cd y se le pide el nombre del directorio creado al cual quiere ingresar.
+2. Esta nueva ruta sera usada para las peticiones de consulta o adición de archivos.
+
+### Comando mkdir (Crear carpeta)
+Secuencia:
+1. El cliente ejecuta el comando mkdir y se le pide el nombre de la carpeta que desea crear.
+2. Esta carpeta se creará en el sistema de archivos del cliente y será usada como ruta para adición de archivos.
+
+### Comando rmdir (Eliminar carpeta)
+Secuencia:
+1. El cliente ejecuta el comando rmdir y se le pide el nombre de la carpeta que desea eliminar.
+2. El cliente envía una solicitud al NameNode con el nombre de la carpeta y del usuario.
+3. El NameNode verifica si la carpeta pertenece al usuario y, si es válido, elimina la metadata asociada a la carpeta.
+4. El NameNode envía solicitudes a los DataNodes involucrados para eliminar los bloques asociados a la carpeta que desea eliminar.
+5. Los DataNodes eliminan los bloques y confirman al NameNode.
+6. El NameNode informa al cliente que la eliminación fue exitosa en el sistema distribuido.
+7. El cliente elimina la carpeta localmente en la carpeta downloads y confirma que si sucedió.
+
+## Servicios Namenode
+
+### Gestión de tabla metadata
+Secuencia:
+1. El NameNode gestiona la tabla de metadata, la cual contiene la ubicación de todos los bloques de los archivos distribuidos en los DataNodes.
+2. Cada vez que un archivo se agrega, modifica o elimina, el NameNode actualiza la tabla de metadata para reflejar los cambios.
+3. El NameNode recibe información periódica de los DataNodes (a través de Block Reports) para verificar que los bloques estén correctamente distribuidos y almacenados.
+4. El NameNode utiliza la tabla de metadata para determinar qué bloques enviar o eliminar cuando un cliente solicita operaciones sobre archivos.
+5. En caso de pérdida de un DataNode, el NameNode reasigna los bloques perdidos a otros DataNodes y actualiza su tabla de metadata.
+
+### Reporte de bloques (Block Report)
+Secuencia:
+l. DataNode envía informes periódicos al NameNode con la lista de bloques que está almacenando.
+2. NameNode actualiza su tabla de metadata en base a estos informes para garantizar que los bloques estén almacenados correctamente.
+3. NameNode usa esta información para gestionar la replicación y detectar fallas en los DataNodes.
+
+### Heartbeat
+Secuencia:
+1. Los DataNodes envían señales regulares de heartbeat al NameNode para indicar que están activos y en funcionamiento.
+2. Si el NameNode deja de recibir heartbeats de un DataNode dentro de un periodo determinado, considera que el DataNode ha fallado.
+3. El NameNode reprograma la replicación de los bloques almacenados en ese DataNode en otros nodos disponibles.
+
+### Handshake (inicio de comunicación)
+Secuencia:
+1. Cuando un DataNode arranca, se registra en el NameNode enviando un mensaje de "handshake".
+2. El NameNode verifica la identidad del DataNode y lo registra en su sistema.
+3. El DataNode comienza a enviar heartbeats y reportes de bloques al NameNode de manera regular.
+
+## Servicios DataNode
+
+#### Recepción de Bloques:
+Secuencia:
+1. El DataNode recibe bloques de datos enviados por el cliente.
+2. Verifica la integridad del bloque mediante un checksum.
+3. Almacena el bloque en el almacenamiento local (disco).
+   
+#### Actualización de Metadata Local:
+Secuencia:
+1. Actualiza su propia metadata para reflejar los bloques almacenados y su integridad.
+2. Mantiene una lista de los bloques que está almacenando para el reporte al NameNode.
+
+#### Eliminación de Bloques:
+Secuencia:
+1. Recibe solicitudes del NameNode para eliminar bloques específicos.
+2. Elimina los bloques solicitados de su almacenamiento local.
+3. Actualiza su metadata para reflejar la eliminación de los bloques.
+
+#### Solicitud de Lectura de Bloques:
+Secuencia:
+1. Recibe una solicitud de lectura de un cliente para un bloque específico.
+2. Verifica que el bloque solicitado esté disponible y no esté dañado.
+3. Envía el bloque solicitado al cliente.
+   
+#### Solicitud de Escritura de Bloques:
+Secuencia:
+1. Recibe un bloque para almacenar desde un cliente.
+2. Verifica la integridad del bloque recibido y lo almacena.
+3. Envía una confirmación al cliente de que el bloque ha sido almacenado con éxito.
+
+#### Block Report (Reporte de Bloques):
+Secuencia:
+1. Envía periódicamente un Block Report al NameNode.
+2. El reporte contiene la lista de bloques almacenados, su ubicación, y su estado de integridad.
+3. Permite al NameNode actualizar su tabla de metadata y realizar la gestión de replicación.
+   
+#### Heartbeat (Latido del Corazón):
+Secuencia:
+1. Envía señales de heartbeat regulares al NameNode para confirmar que está activo y funcionando.
+2. Incluye información adicional como el estado de almacenamiento y la capacidad disponible.
+
+#### Handshake (Inicio de Comunicación):
+Secuencia:
+1. Cuando el DataNode se inicia, realiza un handshake con el NameNode.
+2. Envía un mensaje de registro al NameNode con información sobre su identidad y capacidad.
+3. El NameNode valida al DataNode y lo incluye en su lista de nodos activos.
+   
+#### Registro en el Sistema:
+Secuencia:
+1. Después del handshake, el DataNode se registra oficialmente en el sistema del NameNode.
+2. Comienza a enviar heartbeats y block reports según lo requiera el NameNode.
+
+#### Mantenimiento de Integridad de Datos:
+Secuencia:
+1.Realiza chequeos periódicos de integridad de los bloques almacenados.
+2. Detecta y corrige errores si es posible o informa al NameNode sobre bloques dañados.
+
+#### Recuperación ante Fallos:
+Secuencia:
+1. Participa en el proceso de recuperación de datos en caso de fallo.
+2. Reemplaza los bloques que faltan o están dañados según las instrucciones del NameNode.
+
