@@ -53,8 +53,8 @@ Palabras clave: Sistemas de archivos distribuidos, GFS, HDFS, almacenamiento por
 - Replication Management
 - DeleteBlocksDirectory
 
-o	DataNode <-> DataNode: RPC (HTTP/2)   <br>
-
+####	DataNode <-> DataNode
+- Blocks Replication
 
 # Diseño detallado
   
