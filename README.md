@@ -29,6 +29,7 @@ Palabras clave: Sistemas de archivos distribuidos, GFS, HDFS, almacenamiento por
 ## Arquitectura del Sistema
 ![Arquitectura HDFS Proyecto Telematica](https://github.com/user-attachments/assets/fe5921cc-a005-47c1-8873-e9f28d6e07d9)
 
+
 ## Protocolos: gRPC (HTTP/2)
 #### Cliente <-> NameNode
 - Authenticate
@@ -44,24 +45,18 @@ Palabras clave: Sistemas de archivos distribuidos, GFS, HDFS, almacenamiento por
 #### Cliente <-> DataNode
 - StoreBlock
 - GetBlock
-
-#### NameNode <-> DataNode
-- DeleteBlocksDirectory
   
-
-### NameNode <-> DataNode
+#### NameNode <-> DataNode
 - Heartbeats
 - Handshake
 - Block Reports
 - Replication Management
+- DeleteBlocksDirectory
 
 o	DataNode <-> DataNode: RPC (HTTP/2)   <br>
 
 
 # Diseño detallado
-
-
-
   
 ## Servicios cliente
 
