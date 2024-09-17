@@ -1,5 +1,6 @@
 import sys
 import os
+import time
 from concurrent import futures
 import grpc
 # Agregar la ruta de la carpeta 'protos' al PYTHONPATH
@@ -18,10 +19,10 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
             "user1": "pass1",
             "user2": "pass2"
         }
-        self.datanodes = ["127.0.0.1:5001"]  # Cambia DataNode1 y DataNode2 por IPs locales
+        self.datanodes = ["127.0.0.1:5001","127.0.0.1:5002"]  # Cambia DataNode1 y DataNode2 por IPs locales
         self.user_files = {}
         self.user_directories = {}
-
+        self.datanode_heartbeats = {}
 
         for user in self.users:
             self.user_directories[user] = []
@@ -131,14 +132,38 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
                 print(f"Error al eliminar bloques del archivo '{filename}' en DataNode {datanode}: {delete_response.message}")
 
         return file_pb2.DeleteFileResponse(success=True, message="Archivo eliminado correctamente.")
+    
+    def Heartbeat(self, request, context):
+        datanode_name = request.datanode_name  # El nombre del DataNode ahora incluye el puerto
+        self.datanode_heartbeats[datanode_name] = time.time()  # Registra el tiempo del último heartbeat
+
+        print(f"Heartbeat recibido de {datanode_name}")
+
+        return file_pb2.HeartbeatResponse(status="OK")
+
+    
+    def check_datanodes(self):
+        """Verifica si algún DataNode ha dejado de enviar heartbeats"""
+        current_time = time.time()
+        for datanode_name, last_heartbeat in list(self.datanode_heartbeats.items()):
+            if current_time - last_heartbeat > 10:  # Tiempo límite de 10 segundos para recibir el heartbeat
+                print(f"DataNode {datanode_name} no responde. Último heartbeat hace más de 10 segundos.")
+                del self.datanode_heartbeats[datanode_name]  # Elimina el DataNode inactivo
+    
+    
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    file_pb2_grpc.add_NameNodeServiceServicer_to_server(NameNodeServicer(), server)
-    server.add_insecure_port('[::]:5000') 
+    namenode_servicer = NameNodeServicer()
+    file_pb2_grpc.add_NameNodeServiceServicer_to_server(namenode_servicer, server)
+    server.add_insecure_port('[::]:5000')
     print("Namenode escuchando en el puerto 5000...")
     server.start()
     server.wait_for_termination()
 
+    # Ejecuta la verificación de los DataNodes cada 10 segundos
+    while True:
+        namenode_servicer.check_datanodes()
+        time.sleep(10)
+
 if __name__ == "__main__":
     serve()
-

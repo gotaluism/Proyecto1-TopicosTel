@@ -65,6 +65,11 @@ class NameNodeServiceStub(object):
                 request_serializer=file__pb2.DeleteFileRequest.SerializeToString,
                 response_deserializer=file__pb2.DeleteFileResponse.FromString,
                 _registered_method=True)
+        self.Heartbeat = channel.unary_unary(
+                '/dfs.NameNodeService/Heartbeat',
+                request_serializer=file__pb2.HeartbeatRequest.SerializeToString,
+                response_deserializer=file__pb2.HeartbeatResponse.FromString,
+                _registered_method=True)
 
 
 class NameNodeServiceServicer(object):
@@ -108,6 +113,12 @@ class NameNodeServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def Heartbeat(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_NameNodeServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -140,6 +151,11 @@ def add_NameNodeServiceServicer_to_server(servicer, server):
                     servicer.DeleteFile,
                     request_deserializer=file__pb2.DeleteFileRequest.FromString,
                     response_serializer=file__pb2.DeleteFileResponse.SerializeToString,
+            ),
+            'Heartbeat': grpc.unary_unary_rpc_method_handler(
+                    servicer.Heartbeat,
+                    request_deserializer=file__pb2.HeartbeatRequest.FromString,
+                    response_serializer=file__pb2.HeartbeatResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -305,6 +321,33 @@ class NameNodeService(object):
             '/dfs.NameNodeService/DeleteFile',
             file__pb2.DeleteFileRequest.SerializeToString,
             file__pb2.DeleteFileResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def Heartbeat(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/dfs.NameNodeService/Heartbeat',
+            file__pb2.HeartbeatRequest.SerializeToString,
+            file__pb2.HeartbeatResponse.FromString,
             options,
             channel_credentials,
             insecure,
