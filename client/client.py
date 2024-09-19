@@ -167,6 +167,7 @@ class DFSClient:
                 print(f"El archivo '{filename}' no se encontró en la carpeta 'downloads' local.")
         else:
             print(f"Error al eliminar el archivo: {response.message}")
+            
     def send_to_datanode(self, datanode_address, block):
         datanode_channel = grpc.insecure_channel(datanode_address)
         datanode_stub = file_pb2_grpc.DataNodeServiceStub(datanode_channel)
