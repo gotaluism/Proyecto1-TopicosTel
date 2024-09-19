@@ -121,7 +121,7 @@ message DeleteBlockResponse {
 // Mensaje de solicitud de Heartbeat
 message HeartbeatRequest {
     string datanode_name = 1;
-    int32 available_storage = 2;
+    repeated string stored_blocks = 2;  // Nuevo campo para la lista de bloques
 }
 
 // Mensaje de respuesta de Heartbeat

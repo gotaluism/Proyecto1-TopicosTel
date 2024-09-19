@@ -15,36 +15,53 @@ class DataNodeServicer(file_pb2_grpc.DataNodeServiceServicer):
         self.datanode_name = datanode_name
         self.namenode_stub = namenode_stub
 
-    def send_heartbeat(self,port):
+    def send_heartbeat(self, port):
         while True:
             try:
-                # Envía el heartbeat con la capacidad de almacenamiento simulada
+                # Obtener la lista de bloques almacenados en este DataNode
+                stored_blocks = self.get_stored_blocks()
+
+                # Envía el heartbeat con la lista de bloques
                 heartbeat_request = file_pb2.HeartbeatRequest(
                     datanode_name=f"{self.datanode_name}:{port}",
-                    #available_storage=self.get_available_storage()
+                    stored_blocks=stored_blocks  # Envía la lista de bloques
                 )
                 response = self.namenode_stub.Heartbeat(heartbeat_request)
                 print(f"Heartbeat enviado desde {self.datanode_name} en el puerto {port}. Respuesta del NameNode: {response.status}")
 
             except Exception as e:
                 print(f"Error al enviar heartbeat desde {self.datanode_name} en el puerto {port}: {str(e)}")
-            
+
             time.sleep(5)  # Enviar heartbeat cada 5 segundos
+
 
     # def get_available_storage(self):
     #     # Simular almacenamiento disponible (en GB)
     #     return 100  # Ejemplo: 100 GB disponibles
-    
+
+    def get_storage_directory(self):
+        """Obtiene la ruta de almacenamiento única para este DataNode"""
+        return f'./datanode_storage/{self.datanode_name}/downloads'
+
+    def get_stored_blocks(self):
+        """Obtiene la lista de bloques almacenados en este DataNode"""
+        storage_dir = self.get_storage_directory()
+        stored_blocks = []
+        for dirpath, dirnames, filenames in os.walk(storage_dir):
+            for filename in filenames:
+                relative_path = os.path.relpath(os.path.join(dirpath, filename), storage_dir)
+                stored_blocks.append(relative_path)
+        return stored_blocks
+
     def StoreBlock(self, request, context):
         filename = request.filename
         block_number = request.block_number
         data = request.data
-        out_dir = './datanode/downloads'
-        file_dir = os.path.join(out_dir, filename)
+        storage_dir = self.get_storage_directory()  # Obtiene la carpeta específica para este DataNode
+        file_dir = os.path.join(storage_dir, filename)
 
         if not os.path.exists(file_dir):
             os.makedirs(file_dir)
-            
 
         block_path = os.path.join(file_dir, f'block_{block_number}.txt')
 
@@ -54,6 +71,7 @@ class DataNodeServicer(file_pb2_grpc.DataNodeServiceServicer):
             return file_pb2.StoreBlockResponse(success=True, message=f"Bloque {block_number} guardado correctamente.")
         except Exception as e:
             return file_pb2.StoreBlockResponse(success=False, message=f"Error al guardar el bloque: {str(e)}")
+
         
         
     def DeleteBlock(self, request, context):
@@ -103,5 +121,7 @@ if __name__ == "__main__":
     # Cambiar a DataNode2 para el segundo nodo
     #serve('DataNode1', 5001)  
     #serve('DataNode2', 5002)
+    
     #serve('127.0.0.1',5001)
-    serve('127.0.0.1',5002)
+    #serve('127.0.0.1',5002)
+    serve('127.0.0.1',5003)

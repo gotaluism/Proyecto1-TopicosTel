@@ -19,10 +19,11 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
             "user1": "pass1",
             "user2": "pass2"
         }
-        self.datanodes = ["127.0.0.1:5001","127.0.0.1:5002"]  # Cambia DataNode1 y DataNode2 por IPs locales
+        self.datanodes = ["127.0.0.1:5001","127.0.0.1:5002","127.0.0.1:5003"]  
         self.user_files = {}
         self.user_directories = {}
         self.datanode_heartbeats = {}
+        self.datanode_blocks = {}
 
         for user in self.users:
             self.user_directories[user] = []
@@ -45,23 +46,24 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
         filename = request.filename
         username = request.username
         metadata = []
-
-
+    
+        # Asegúrate de que cada bloque vaya a un DataNode diferente
         for block in request.metadata:
-            datanode = self.datanodes[block.block_number % len(self.datanodes)]
+            datanode_index = (block.block_number - 1) % len(self.datanodes)  # Distribución circular
+            datanode = self.datanodes[datanode_index]
             metadata.append(file_pb2.FileBlockMetadata(
                 block_number=block.block_number,
                 start_byte=block.start_byte,
                 end_byte=block.end_byte,
                 datanode=datanode
             ))
-
-
+    
         if username not in self.user_files:
             self.user_files[username] = []
         self.user_files[username].append(filename)
-
+    
         return file_pb2.FileMetadataResponse(success=True, metadata=metadata)
+
 
     def PutFile(self, request, context):
         filename = request.filename
@@ -133,13 +135,18 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
 
         return file_pb2.DeleteFileResponse(success=True, message="Archivo eliminado correctamente.")
     
+
     def Heartbeat(self, request, context):
-        datanode_name = request.datanode_name  # El nombre del DataNode ahora incluye el puerto
+        datanode_name = request.datanode_name
         self.datanode_heartbeats[datanode_name] = time.time()  # Registra el tiempo del último heartbeat
-
-        print(f"Heartbeat recibido de {datanode_name}")
-
+    
+        # Mostrar la lista de bloques almacenados en este DataNode
+        stored_blocks = ', '.join(request.stored_blocks)
+        print(f"Heartbeat recibido de {datanode_name} [{stored_blocks}]")
+    
         return file_pb2.HeartbeatResponse(status="OK")
+
+
 
     
     def check_datanodes(self):
@@ -149,6 +156,8 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
             if current_time - last_heartbeat > 10:  # Tiempo límite de 10 segundos para recibir el heartbeat
                 print(f"DataNode {datanode_name} no responde. Último heartbeat hace más de 10 segundos.")
                 del self.datanode_heartbeats[datanode_name]  # Elimina el DataNode inactivo
+                del self.datanode_blocks[datanode_name]  # Elimina la información de los bloques del DataNode inactivo
+    
     
     
 def serve():
