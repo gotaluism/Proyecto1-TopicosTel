@@ -2,8 +2,11 @@ import os
 import sys
 import grpc
 import shutil
+
+
 # Asegurar que la carpeta 'protos' esté en el PYTHONPATH
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'protos')))
+import file_pb2, file_pb2_grpc
 
 
 class DFSClient:
@@ -11,6 +14,7 @@ class DFSClient:
         self.channel = grpc.insecure_channel(f'{namenode_host}:{namenode_port}')
         self.stub = file_pb2_grpc.NameNodeServiceStub(self.channel)
         self.username = None
+        self.path = None
 
     def authenticate(self, username, password):
         request = file_pb2.LoginRequest(username=username, password=password)
@@ -86,7 +90,10 @@ class DFSClient:
 
         filename = os.path.basename(filepath)
         file_dir = os.path.dirname(filepath)
-        out_dir = './downloads'
+        if self.path != None:
+            out_dir =
+        else:            
+            out_dir = './downloads' 
         chunk_size = 64 * 1024  # Tamaño de cada bloque 64 KB
 
         # Particionar el archivo en bloques y crear metadata
@@ -114,6 +121,12 @@ class DFSClient:
                 self.send_to_datanode(block_metadata.datanode, block)
 
         return True
+    
+    def get(self):
+        if self.username is None:
+            print("No hay un usuario autenticado.")
+            return
+         
 
     def ls(self):
         if self.username is None:
@@ -127,6 +140,9 @@ class DFSClient:
             print("Archivos del usuario:")
             for filename in response.filenames:
                 print(filename)
+            print("Carpetas del usuario:")
+            for directoryname in response.directorynames:
+                print(directoryname)
         else:
             print(f"Error al obtener lista de archivos: {response.message}")
         
@@ -145,6 +161,20 @@ class DFSClient:
             print(f"Directorio '{directory}' creado con éxito.")
         else:
             print(f"Error al crear el directorio: {response.message}")
+
+    def rmdir(self, directory):
+
+        if not directory:
+            print("Error: El nombre del directorio no puede estar vacío.")
+            return
+
+        request = file_pb2.RmdirRequest(username=self.username, directory=directory)
+        response = self.stub.Rmdir(request)
+
+        if response.success:
+            print(f"Directorio '{directory}' eliminado con éxito.")
+        else:
+            print(f"Error al eliminar el directorio: {response.message}")
     
     def rm(self, filename):
         request = file_pb2.DeleteFileRequest(username=self.username, filename=filename)
@@ -180,7 +210,32 @@ class DFSClient:
         else:
             print(f"Error al enviar bloque {block['block_number']} a {datanode_address}: {response.message}")
 
+    def cd(self):
+        if self.username is None:
+            print("No hay un usuario autenticado.")
+            return
+        
+        print("Ingrese el nombre del directorio que desea usar: ")
+        directoryName = input()
+    
+        request = file_pb2.ListFilesRequest(username=self.username)
+        response = self.stub.ListFiles(request)
+
+        if directoryName in response.directorynames:
+            print("DDDDD")
+            print(directoryName)
+            if self.path != None:
+                self.path = self.path + "/" + directoryName
+            else:
+                self.path = directoryName
+            print("Ruta actualizada a: " + self.path)
+
+        print("Esta carpeta no existe")
+        
+
     def show_menu(self):
+        if self.path != None:
+            print("Tu ruta actual es: " + self.path)
         print("\nMenú de Comandos:")
         print("1. ls")
         print("2. cd")
@@ -194,19 +249,21 @@ class DFSClient:
     def execute_command(self, command):
         if command == "ls":
             self.ls()
-        elif command == "cd":
+        elif command == "cd": 
             print("Ejecutando comando 'cd'...")
+            self.cd()
         elif command == "get":
             print("Ejecutando comando 'get'...")
+            self.get()
         elif command == "put":
-            filepath = input("Ingrese el camino al archivo local que desea subir: ")
+            filepath = input("Ingrese la ruta al archivo local que desea subir: ")
             self.put(filepath)
-
         elif command == "mkdir":
             directory = input("Ingrese el nombre del directorio a crear: ")
             self.mkdir(directory)
         elif command == "rmdir":
-            print("Ejecutando comando 'rmdir'...")
+            directory = input("Ingrese el nombre del directorio a eliminar: ")
+            self.rmdir(directory)
         elif command == "rm":
             filename = input("Ingrese el nombre del archivo a eliminar: ")
             self.rm(filename)

@@ -9,6 +9,7 @@ service NameNodeService {
   rpc PutFileMetadata(FileMetadataRequest) returns (FileMetadataResponse);  // Enviar metadata para asignar DataNodes
   rpc ListFiles(ListFilesRequest) returns (ListFilesResponse);
   rpc Mkdir(MkdirRequest) returns (MkdirResponse);
+  rpc Rmdir(RmdirRequest) returns (RmdirResponse);
   rpc DeleteFile(DeleteFileRequest) returns (DeleteFileResponse);
 }
 
@@ -84,7 +85,8 @@ message ListFilesRequest {
 message ListFilesResponse {
     bool success = 1;
     repeated string filenames = 2;
-    string message = 3;
+    repeated string directorynames = 3;
+    string message = 4;
 }
 
 message MkdirRequest {
@@ -93,6 +95,16 @@ message MkdirRequest {
 }
 
 message MkdirResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message RmdirRequest {
+    string username = 1;
+    string directory = 2;
+}
+
+message RmdirResponse {
     bool success = 1;
     string message = 2;
 }
@@ -114,4 +126,8 @@ message DeleteBlockRequest {
 message DeleteBlockResponse {
     bool success = 1;
     string message = 2;
+}
+
+message GetFileRequest {
+    string filepath = 1;
 }

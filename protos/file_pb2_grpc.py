@@ -60,6 +60,11 @@ class NameNodeServiceStub(object):
                 request_serializer=file__pb2.MkdirRequest.SerializeToString,
                 response_deserializer=file__pb2.MkdirResponse.FromString,
                 _registered_method=True)
+        self.Rmdir = channel.unary_unary(
+                '/dfs.NameNodeService/Rmdir',
+                request_serializer=file__pb2.RmdirRequest.SerializeToString,
+                response_deserializer=file__pb2.RmdirResponse.FromString,
+                _registered_method=True)
         self.DeleteFile = channel.unary_unary(
                 '/dfs.NameNodeService/DeleteFile',
                 request_serializer=file__pb2.DeleteFileRequest.SerializeToString,
@@ -102,6 +107,12 @@ class NameNodeServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def Rmdir(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def DeleteFile(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -135,6 +146,11 @@ def add_NameNodeServiceServicer_to_server(servicer, server):
                     servicer.Mkdir,
                     request_deserializer=file__pb2.MkdirRequest.FromString,
                     response_serializer=file__pb2.MkdirResponse.SerializeToString,
+            ),
+            'Rmdir': grpc.unary_unary_rpc_method_handler(
+                    servicer.Rmdir,
+                    request_deserializer=file__pb2.RmdirRequest.FromString,
+                    response_serializer=file__pb2.RmdirResponse.SerializeToString,
             ),
             'DeleteFile': grpc.unary_unary_rpc_method_handler(
                     servicer.DeleteFile,
@@ -278,6 +294,33 @@ class NameNodeService(object):
             '/dfs.NameNodeService/Mkdir',
             file__pb2.MkdirRequest.SerializeToString,
             file__pb2.MkdirResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def Rmdir(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/dfs.NameNodeService/Rmdir',
+            file__pb2.RmdirRequest.SerializeToString,
+            file__pb2.RmdirResponse.FromString,
             options,
             channel_credentials,
             insecure,

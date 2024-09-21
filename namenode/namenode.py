@@ -86,8 +86,17 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
 
     def ListFiles(self, request, context):
         username = request.username
+    
         if username in self.user_files:
-            return file_pb2.ListFilesResponse(success=True, filenames=self.user_files[username])
+            if username in self.user_directories:
+                return file_pb2.ListFilesResponse(success=True, filenames=self.user_files[username], directorynames=self.user_directories[username])
+            else:
+                return file_pb2.ListFilesResponse(success=True, filenames=self.user_files[username], directorynames=[])
+        elif username in self.user_directories:
+            if username in self.user_files:
+                return file_pb2.ListFilesResponse(success=True, filenames=self.user_files[username], directorynames=self.user_directories[username])
+            else:
+                return file_pb2.ListFilesResponse(success=True, filenames=[], directorynames=self.user_directories[username])
         else:
             return file_pb2.ListFilesResponse(success=False, message="El usuario no tiene archivos.")
 
@@ -95,20 +104,40 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
     def Mkdir(self, request, context):
         username = request.username
         new_dir = request.directory
-        print(f"Solicitud de mkdir para el usuario: {username}, directorio: {new_dir}")
-        
+        print(f"Solicitud de mkdir para el usuario: {username}, directorio: {new_dir}")       
+   
         
         if not username or not new_dir:
             print(f"Error: datos inválidos en la solicitud. Username: '{username}', Directorio: '{new_dir}'")
             return file_pb2.MkdirResponse(success=False, message="Datos inválidos.")
         
+        if username not in self.user_directories:
+            self.user_directories[username] = []
+
         if new_dir in self.user_directories[username]:
             return file_pb2.MkdirResponse(success=False, message="El directorio ya existe.")
-
+        
         self.user_directories[username].append(new_dir)
+        print(self.user_directories)
         print(f"Directorio '{new_dir}' creado para el usuario '{username}'")
         return file_pb2.MkdirResponse(success=True, message="Directorio creado con éxito.")
     
+
+    def Rmdir(self, request, context):
+        username = request.username
+        dir = request.directory
+        print(f"Solicitud de rmdir para el usuario: {username}, directorio: {dir}")    
+
+        if not username or not dir:
+            print(f"Error: datos inválidos en la solicitud. Username: '{username}', Directorio: '{dir}'")
+            return file_pb2.MkdirResponse(success=False, message="Datos inválidos.")
+
+        if dir not in self.user_directories[username]:
+            return file_pb2.MkdirResponse(success=False, message="El directorio no existe.")
+        
+        self.user_directories[username].remove(dir)
+        print(f"Directorio '{dir}' eliminado para el usuario '{username}'")
+        return file_pb2.MkdirResponse(success=True, message="Directorio eliminado con éxito.")
     
     
     def DeleteFile(self, request, context):
