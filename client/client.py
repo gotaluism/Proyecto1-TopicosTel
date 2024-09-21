@@ -3,10 +3,11 @@ import sys
 import grpc
 import shutil
 
-
 # Asegurar que la carpeta 'protos' esté en el PYTHONPATH
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'protos')))
-import file_pb2, file_pb2_grpc
+
+import file_pb2 as file_pb2
+import file_pb2_grpc as file_pb2_grpc
 
 
 class DFSClient:
@@ -193,6 +194,7 @@ class DFSClient:
                 print(f"El archivo '{filename}' no se encontró en la carpeta 'downloads' local.")
         else:
             print(f"Error al eliminar el archivo: {response.message}")
+            
     def send_to_datanode(self, datanode_address, block):
         datanode_channel = grpc.insecure_channel(datanode_address)
         datanode_stub = file_pb2_grpc.DataNodeServiceStub(datanode_channel)

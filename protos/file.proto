@@ -11,6 +11,9 @@ service NameNodeService {
   rpc Mkdir(MkdirRequest) returns (MkdirResponse);
   rpc Rmdir(RmdirRequest) returns (RmdirResponse);
   rpc DeleteFile(DeleteFileRequest) returns (DeleteFileResponse);
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+  rpc RegisterDataNode(DataNodeRegisterRequest) returns (DataNodeRegisterResponse);
+  rpc BlockReport(BlockReportRequest) returns (BlockReportResponse);
 }
 
 // Servicio para el DataNode
@@ -131,3 +134,43 @@ message DeleteBlockResponse {
 message GetFileRequest {
     string filepath = 1;
 }
+
+
+// Mensaje de solicitud de Heartbeat
+message HeartbeatRequest {
+    string datanode_name = 1;
+    repeated string stored_blocks = 2;  // Nuevo campo para la lista de bloques
+}
+
+// Mensaje de respuesta de Heartbeat
+message HeartbeatResponse {
+    string status = 1;
+}
+
+message DataNodeRegisterRequest {
+    string datanode_name = 1;
+    string ip_address = 2;
+    int32 port = 3;
+}
+
+message DataNodeRegisterResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message BlockInfo {
+    string block_id = 1;
+    int64 size = 2;
+    string checksum = 3;
+}
+
+message BlockReportRequest {
+    string datanode_name = 1;
+    repeated BlockInfo blocks = 2;
+}
+
+message BlockReportResponse {
+    string message = 1;
+}
+
+
