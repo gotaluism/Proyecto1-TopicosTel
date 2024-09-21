@@ -3,6 +3,8 @@ import os
 import grpc
 import time
 from concurrent import futures
+import hashlib
+import threading
 
 # Asegurar que la carpeta 'protos' esté en el PYTHONPATH
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'protos')))
@@ -11,28 +13,52 @@ import file_pb2 as file_pb2
 import file_pb2_grpc as file_pb2_grpc
 
 class DataNodeServicer(file_pb2_grpc.DataNodeServiceServicer):
-    def __init__(self, datanode_name, namenode_stub):
-        self.datanode_name = datanode_name
+    def __init__(self, ip_address, port, namenode_stub):
+        self.ip_address = ip_address
+        self.port = port
+        self.datanode_name = f"{ip_address}:{port}"
         self.namenode_stub = namenode_stub
-        self.stored_blocks = []  
+        self.stored_blocks = []
+        self.registered = False
 
-    def send_heartbeat(self, port):
-        while True:
+    def register_with_namenode(self):
+        while not self.registered:
             try:
-                # Envía el heartbeat con la lista de bloques
+                register_request = file_pb2.DataNodeRegisterRequest(
+                    datanode_name=self.datanode_name,
+                    ip_address=self.ip_address,
+                    port=self.port
+                )
+                response = self.namenode_stub.RegisterDataNode(register_request)
+                if response.success:
+                    print(f"Registro exitoso con NameNode: {response.message}")
+                    self.registered = True
+                else:
+                    print(f"Fallo en el registro con NameNode: {response.message}")
+                    time.sleep(5)
+            except Exception as e:
+                print(f"Error durante el registro con NameNode: {str(e)}")
+                time.sleep(5)
+
+
+    def send_heartbeat(self):
+        while True:
+            if not self.registered:
+                print("DataNode no registrado. Intentando registrar...")
+                self.register_with_namenode()
+                continue
+
+            try:
                 heartbeat_request = file_pb2.HeartbeatRequest(
-                    datanode_name=f"{self.datanode_name}:{port}",
-                    stored_blocks=self.stored_blocks  # Envía la lista de bloques almacenados
+                    datanode_name=self.datanode_name,
+                    stored_blocks=self.stored_blocks
                 )
                 response = self.namenode_stub.Heartbeat(heartbeat_request)
-                print(f"Heartbeat enviado desde {self.datanode_name} en el puerto {port}. Respuesta del NameNode: {response.status}")
-
+                print(f"Heartbeat enviado desde {self.datanode_name}. Respuesta del NameNode: {response.status}")
             except Exception as e:
-                print(f"Error al enviar heartbeat desde {self.datanode_name} en el puerto {port}: {str(e)}")
-
-            time.sleep(5)  # Enviar heartbeat cada 5 segundos
-
-
+                print(f"Error al enviar heartbeat: {str(e)}")
+                self.registered = False
+            time.sleep(5)
     # def get_available_storage(self):
     #     # Simular almacenamiento disponible (en GB)
     #     return 100  # Ejemplo: 100 GB disponibles
@@ -41,6 +67,56 @@ class DataNodeServicer(file_pb2_grpc.DataNodeServiceServicer):
         """Utiliza la ruta de almacenamiento existente en la carpeta 'downloads'."""
         return './downloads'
     
+    def get_block_info(self):
+        storage_dir = self.get_storage_directory()
+        block_info = []
+        for dirpath, dirnames, filenames in os.walk(storage_dir):
+            for filename in filenames:
+                file_path = os.path.join(dirpath, filename)
+                relative_path = os.path.relpath(file_path, storage_dir)
+                file_size = os.path.getsize(file_path)
+                checksum = self.calculate_checksum(file_path)
+                
+                # Aceptar cualquier archivo que contenga 'block' en su nombre
+                if 'block' in filename.lower():
+                    block_info.append(file_pb2.BlockInfo(
+                        block_id=relative_path,
+                        size=file_size,
+                        checksum=checksum
+                    ))
+                else:
+                    print(f"Ignorando archivo que no es un bloque: {relative_path}")
+        
+        return block_info
+    
+    def calculate_checksum(self, file_path):
+        hasher = hashlib.md5()
+        with open(file_path, 'rb') as f:
+            buf = f.read(65536)
+            while len(buf) > 0:
+                hasher.update(buf)
+                buf = f.read(65536)
+        return hasher.hexdigest()
+    
+    def send_block_report(self):
+        while True:
+            if not self.registered:
+                time.sleep(5)
+                continue
+
+            try:
+                block_info = self.get_block_info()
+                report_request = file_pb2.BlockReportRequest(
+                    datanode_name=self.datanode_name,
+                    blocks=block_info
+                )
+                response = self.namenode_stub.BlockReport(report_request)
+                print(f"Block Report enviado. Respuesta del NameNode: {response.message}")
+            except Exception as e:
+                print(f"Error al enviar Block Report: {str(e)}")
+            
+            time.sleep(60)  # Enviar Block Report cada 60 segundos
+
     def get_stored_blocks(self):
         """Obtiene la lista de bloques almacenados en este DataNode"""
         storage_dir = self.get_storage_directory()
@@ -107,22 +183,30 @@ class DataNodeServicer(file_pb2_grpc.DataNodeServiceServicer):
             return file_pb2.DeleteBlockResponse(success=False, message="El archivo no existe en este DataNode.")
 
 
-def serve(datanode_name, port):
+def serve(ip_address, port):
     # Conectar con el NameNode
     channel = grpc.insecure_channel('localhost:5000')
     stub = file_pb2_grpc.NameNodeServiceStub(channel)
     
-    datanode_servicer = DataNodeServicer(datanode_name, stub)
+    datanode_servicer = DataNodeServicer(ip_address, port, stub)
+
+    # Registrar el DataNode con el NameNode
+    datanode_servicer.register_with_namenode()
     
     # Iniciar el servidor para recibir bloques
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     file_pb2_grpc.add_DataNodeServiceServicer_to_server(datanode_servicer, server)
-    server.add_insecure_port(f'[::]:{port}')
-    print(f"{datanode_name} escuchando en el puerto {port}...")
+    server.add_insecure_port(f'{ip_address}:{port}')
+    print(f"DataNode escuchando en {ip_address}:{port}...")
     server.start()
 
-    # Enviar heartbeats periódicamente al NameNode
-    datanode_servicer.send_heartbeat(port)
+    # Iniciar el envío de heartbeats en un hilo separado
+    heartbeat_thread = threading.Thread(target=datanode_servicer.send_heartbeat)
+    heartbeat_thread.start()
+
+    block_report_thread = threading.Thread(target=datanode_servicer.send_block_report)
+    block_report_thread.start()
+
     server.wait_for_termination()
 
 if __name__ == "__main__":

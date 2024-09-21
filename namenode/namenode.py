@@ -10,8 +10,6 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'p
 import file_pb2 as file_pb2
 import file_pb2_grpc as file_pb2_grpc
 
-
-
 class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
     def __init__(self):
         self.users = {
@@ -24,6 +22,9 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
         self.user_directories = {}
         self.datanode_heartbeats = {}
         self.datanode_blocks = {}
+        self.active_datanodes = {}
+        self.file_metadata = {}
+        self.block_locations = {}        
 
         for user in self.users:
             self.user_directories[user] = []
@@ -135,30 +136,110 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
 
         return file_pb2.DeleteFileResponse(success=True, message="Archivo eliminado correctamente.")
     
+    def RegisterDataNode(self, request, context):
+        datanode_name = request.datanode_name
+        if datanode_name in self.active_datanodes:
+            return file_pb2.DataNodeRegisterResponse(success=False, message="DataNode ya registrado")
+        
+        self.active_datanodes[datanode_name] = {
+            'ip_address': request.ip_address,
+            'port': request.port,
+            'last_heartbeat': time.time()
+        }
+        print(f"Nuevo DataNode registrado: {datanode_name}")
+        return file_pb2.DataNodeRegisterResponse(success=True, message="Registro exitoso")
 
     def Heartbeat(self, request, context):
         datanode_name = request.datanode_name
-        self.datanode_heartbeats[datanode_name] = time.time()  # Registra el tiempo del último heartbeat
-    
+        
+        # Verificar si el DataNode está registrado
+        if datanode_name not in self.active_datanodes:
+            return file_pb2.HeartbeatResponse(status="ERROR: DataNode no registrado")
+        
+        # Actualizar el tiempo del último heartbeat
+        self.active_datanodes[datanode_name]['last_heartbeat'] = time.time()
+        
+        # Actualizar la lista de bloques almacenados
+        stored_blocks = request.stored_blocks
+        self.datanode_blocks[datanode_name] = stored_blocks
+        
         # Mostrar la lista de bloques almacenados en este DataNode
-        stored_blocks = ', '.join(request.stored_blocks)
-        print(f"Heartbeat recibido de {datanode_name} [{stored_blocks}]")
-    
+        stored_blocks_str = ', '.join(stored_blocks)
+        print(f"Heartbeat recibido de {datanode_name} [{stored_blocks_str}]")
+        
         return file_pb2.HeartbeatResponse(status="OK")
-
-
-
-    
+   
     def check_datanodes(self):
         """Verifica si algún DataNode ha dejado de enviar heartbeats"""
         current_time = time.time()
-        for datanode_name, last_heartbeat in list(self.datanode_heartbeats.items()):
-            if current_time - last_heartbeat > 10:  # Tiempo límite de 10 segundos para recibir el heartbeat
+        for datanode_name in list(self.active_datanodes.keys()):
+            last_heartbeat = self.active_datanodes[datanode_name]['last_heartbeat']
+            if current_time - last_heartbeat > 10:
                 print(f"DataNode {datanode_name} no responde. Último heartbeat hace más de 10 segundos.")
-                del self.datanode_heartbeats[datanode_name]  # Elimina el DataNode inactivo
-                del self.datanode_blocks[datanode_name]  # Elimina la información de los bloques del DataNode inactivo
+                del self.active_datanodes[datanode_name]
+                if datanode_name in self.datanode_blocks:
+                    del self.datanode_blocks[datanode_name]
+
+    def BlockReport(self, request, context):
+        datanode_name = request.datanode_name
+        blocks = request.blocks
+
+        print(f"Recibido Block Report de {datanode_name}")
+
+        # Actualizar la información de los bloques para este DataNode
+        self.update_block_information(datanode_name, blocks)
+
+        # Verificar la replicación y la integridad de los bloques
+        self.check_replication_and_integrity()
+
+        return file_pb2.BlockReportResponse(message="Block Report procesado correctamente")
     
-    
+    def parse_block_id(self, block_id):
+        try:
+            # Usar os.path.split para manejar correctamente las rutas
+            file_path, block_filename = os.path.split(block_id)
+            
+            # Extraer el número de bloque
+            block_number_str = ''.join(filter(str.isdigit, block_filename))
+            if not block_number_str:
+                raise ValueError(f"No se pudo extraer el número de bloque de: {block_filename}")
+            
+            block_number = int(block_number_str)
+            
+            return file_path, block_number
+        except (ValueError, IndexError) as e:
+            print(f"Error al parsear block_id '{block_id}': {str(e)}")
+            return block_id, 0  # Retornamos valores por defecto en caso de error
+
+    def update_block_information(self, datanode_name, blocks):
+        for block in blocks:
+            block_id = block.block_id
+            if block_id not in self.block_locations:
+                self.block_locations[block_id] = set()
+            self.block_locations[block_id].add(datanode_name)
+
+            file_path, block_number = self.parse_block_id(block_id)
+            if file_path not in self.file_metadata:
+                self.file_metadata[file_path] = {}
+            self.file_metadata[file_path][block_number] = {
+                'size': block.size,
+                'checksum': block.checksum
+            }
+
+        print(f"Información de bloques actualizada para {datanode_name}")
+
+    def check_replication_and_integrity(self):
+        for block_id, locations in self.block_locations.items():
+            if len(locations) < 3:  # Asumiendo que queremos 3 réplicas
+                print(f"El bloque {block_id} necesita más réplicas. Actualmente en: {locations}")
+                self.schedule_replication(block_id, locations)
+
+    def schedule_replication(self, block_id, current_locations):
+        # Aquí implementarías la lógica para programar la replicación del bloque
+        # Por ejemplo, seleccionar un DataNode que tenga el bloque y otro que no lo tenga
+        # y enviar una solicitud para replicar el bloque
+        print(f"Programando replicación para el bloque {block_id}")
+
     
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
