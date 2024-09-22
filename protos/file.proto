@@ -14,12 +14,14 @@ service NameNodeService {
   rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
   rpc RegisterDataNode(DataNodeRegisterRequest) returns (DataNodeRegisterResponse);
   rpc BlockReport(BlockReportRequest) returns (BlockReportResponse);
+  rpc GetFileMetadata(FileMetadataRequest) returns (FileMetadataResponse);
 }
 
 // Servicio para el DataNode
 service DataNodeService {
   rpc StoreBlock(StoreBlockRequest) returns (StoreBlockResponse);  // Almacenar un bloque en un DataNode
   rpc DeleteBlock(DeleteBlockRequest) returns (DeleteBlockResponse);
+  rpc RetrieveBlock(RetrieveBlockRequest) returns (RetrieveBlockResponse);
 }
 
 
@@ -171,6 +173,17 @@ message BlockReportRequest {
 
 message BlockReportResponse {
     string message = 1;
+}
+
+message RetrieveBlockRequest {
+    string filename = 1;
+    int32 block_number = 2;
+}
+
+message RetrieveBlockResponse {
+    bool success = 1;
+    string message = 2;
+    bytes data = 3;  // Contenido binario del bloque
 }
 
 

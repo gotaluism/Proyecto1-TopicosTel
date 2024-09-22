@@ -92,7 +92,7 @@ class DFSClient:
         filename = os.path.basename(filepath)
         file_dir = os.path.dirname(filepath)
         if self.path != None:
-            out_dir =
+            out_dir = './downloads' + "/" + self.path
         else:            
             out_dir = './downloads' 
         chunk_size = 64 * 1024  # Tamaño de cada bloque 64 KB
@@ -123,11 +123,67 @@ class DFSClient:
 
         return True
     
-    def get(self):
+    def get(self, filename):
         if self.username is None:
             print("No hay un usuario autenticado.")
-            return
-         
+        metadata_request = file_pb2.FileMetadataRequest(
+            filename=filename,
+            username=self.username
+        )
+        response = self.stub.GetFileMetadata(metadata_request)
+
+        if not response.success:
+            print(f"Error al obtener metadata del archivo {filename}: {response.message}")
+            return False
+
+        # Crear la carpeta de salida si no existe
+        if self.path != None:
+            out_dir = './downloads' + "/" + self.path
+        else:            
+            out_dir = './downloads'
+        
+        if not os.path.exists(out_dir):
+            os.makedirs(out_dir)
+
+        # Descargar cada bloque desde el DataNode correspondiente
+        file_blocks = []
+        for block in response.metadata:
+            block_data = self.retrieve_from_datanode(block.datanode, filename, block.block_number)
+            if block_data:
+                file_blocks.append((block.block_number, block_data))
+            else:
+                print(f"Error al descargar bloque {block.block_number} desde {block.datanode}")
+                return False
+
+        # Ordenar los bloques por número para reconstruir el archivo
+        file_blocks.sort(key=lambda x: x[0])
+
+        # Ensamblar el archivo
+        file_path = os.path.join(out_dir, filename)
+        with open(file_path, 'wb') as file:
+            for _, block_data in file_blocks:
+                file.write(block_data)
+
+        print(f"Archivo {filename} ensamblado correctamente.")
+        return True
+
+    def retrieve_from_datanode(self, datanode_address, filename, block_number):
+        datanode_channel = grpc.insecure_channel(datanode_address)
+        datanode_stub = file_pb2_grpc.DataNodeServiceStub(datanode_channel)
+
+        request = file_pb2.RetrieveBlockRequest(
+            filename=filename,
+            block_number=block_number
+        )
+
+        response = datanode_stub.RetrieveBlock(request)
+
+        if response.success:
+            return response.data
+        else:
+            print(f"Error al recuperar bloque {block_number}: {response.message}")
+            return None
+            
 
     def ls(self):
         if self.username is None:

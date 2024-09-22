@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\nfile.proto\x12\x03\x64\x66s\"2\n\x0cLoginRequest\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\"1\n\rLoginResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"5\n\x0fRegisterRequest\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\"4\n\x10RegisterResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"a\n\x11\x46ileBlockMetadata\x12\x14\n\x0c\x62lock_number\x18\x01 \x01(\x05\x12\x12\n\nstart_byte\x18\x02 \x01(\x03\x12\x10\n\x08\x65nd_byte\x18\x03 \x01(\x03\x12\x10\n\x08\x64\x61tanode\x18\x04 \x01(\t\"c\n\x13\x46ileMetadataRequest\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x10\n\x08username\x18\x02 \x01(\t\x12(\n\x08metadata\x18\x03 \x03(\x0b\x32\x16.dfs.FileBlockMetadata\"Q\n\x14\x46ileMetadataResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12(\n\x08metadata\x18\x02 \x03(\x0b\x32\x16.dfs.FileBlockMetadata\"I\n\x11StoreBlockRequest\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x14\n\x0c\x62lock_number\x18\x02 \x01(\x05\x12\x0c\n\x04\x64\x61ta\x18\x03 \x01(\x0c\"6\n\x12StoreBlockResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"$\n\x10ListFilesRequest\x12\x10\n\x08username\x18\x01 \x01(\t\"H\n\x11ListFilesResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x11\n\tfilenames\x18\x02 \x03(\t\x12\x0f\n\x07message\x18\x03 \x01(\t\"3\n\x0cMkdirRequest\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x11\n\tdirectory\x18\x02 \x01(\t\"1\n\rMkdirResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"7\n\x11\x44\x65leteFileRequest\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08\x66ilename\x18\x02 \x01(\t\"6\n\x12\x44\x65leteFileResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"&\n\x12\x44\x65leteBlockRequest\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\"7\n\x13\x44\x65leteBlockResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"@\n\x10HeartbeatRequest\x12\x15\n\rdatanode_name\x18\x01 \x01(\t\x12\x15\n\rstored_blocks\x18\x02 \x03(\t\"#\n\x11HeartbeatResponse\x12\x0e\n\x06status\x18\x01 \x01(\t\"R\n\x17\x44\x61taNodeRegisterRequest\x12\x15\n\rdatanode_name\x18\x01 \x01(\t\x12\x12\n\nip_address\x18\x02 \x01(\t\x12\x0c\n\x04port\x18\x03 \x01(\x05\"<\n\x18\x44\x61taNodeRegisterResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"=\n\tBlockInfo\x12\x10\n\x08\x62lock_id\x18\x01 \x01(\t\x12\x0c\n\x04size\x18\x02 \x01(\x03\x12\x10\n\x08\x63hecksum\x18\x03 \x01(\t\"K\n\x12\x42lockReportRequest\x12\x15\n\rdatanode_name\x18\x01 \x01(\t\x12\x1e\n\x06\x62locks\x18\x02 \x03(\x0b\x32\x0e.dfs.BlockInfo\"&\n\x13\x42lockReportResponse\x12\x0f\n\x07message\x18\x01 \x01(\t2\xc3\x04\n\x0fNameNodeService\x12\x35\n\x0c\x41uthenticate\x12\x11.dfs.LoginRequest\x1a\x12.dfs.LoginResponse\x12\x37\n\x08Register\x12\x14.dfs.RegisterRequest\x1a\x15.dfs.RegisterResponse\x12\x46\n\x0fPutFileMetadata\x12\x18.dfs.FileMetadataRequest\x1a\x19.dfs.FileMetadataResponse\x12:\n\tListFiles\x12\x15.dfs.ListFilesRequest\x1a\x16.dfs.ListFilesResponse\x12.\n\x05Mkdir\x12\x11.dfs.MkdirRequest\x1a\x12.dfs.MkdirResponse\x12=\n\nDeleteFile\x12\x16.dfs.DeleteFileRequest\x1a\x17.dfs.DeleteFileResponse\x12:\n\tHeartbeat\x12\x15.dfs.HeartbeatRequest\x1a\x16.dfs.HeartbeatResponse\x12O\n\x10RegisterDataNode\x12\x1c.dfs.DataNodeRegisterRequest\x1a\x1d.dfs.DataNodeRegisterResponse\x12@\n\x0b\x42lockReport\x12\x17.dfs.BlockReportRequest\x1a\x18.dfs.BlockReportResponse2\x92\x01\n\x0f\x44\x61taNodeService\x12=\n\nStoreBlock\x12\x16.dfs.StoreBlockRequest\x1a\x17.dfs.StoreBlockResponse\x12@\n\x0b\x44\x65leteBlock\x12\x17.dfs.DeleteBlockRequest\x1a\x18.dfs.DeleteBlockResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\nfile.proto\x12\x03\x64\x66s\"2\n\x0cLoginRequest\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\"1\n\rLoginResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"5\n\x0fRegisterRequest\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\"4\n\x10RegisterResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"a\n\x11\x46ileBlockMetadata\x12\x14\n\x0c\x62lock_number\x18\x01 \x01(\x05\x12\x12\n\nstart_byte\x18\x02 \x01(\x03\x12\x10\n\x08\x65nd_byte\x18\x03 \x01(\x03\x12\x10\n\x08\x64\x61tanode\x18\x04 \x01(\t\"c\n\x13\x46ileMetadataRequest\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x10\n\x08username\x18\x02 \x01(\t\x12(\n\x08metadata\x18\x03 \x03(\x0b\x32\x16.dfs.FileBlockMetadata\"Q\n\x14\x46ileMetadataResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12(\n\x08metadata\x18\x02 \x03(\x0b\x32\x16.dfs.FileBlockMetadata\"I\n\x11StoreBlockRequest\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x14\n\x0c\x62lock_number\x18\x02 \x01(\x05\x12\x0c\n\x04\x64\x61ta\x18\x03 \x01(\x0c\"6\n\x12StoreBlockResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"$\n\x10ListFilesRequest\x12\x10\n\x08username\x18\x01 \x01(\t\"`\n\x11ListFilesResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x11\n\tfilenames\x18\x02 \x03(\t\x12\x16\n\x0e\x64irectorynames\x18\x03 \x03(\t\x12\x0f\n\x07message\x18\x04 \x01(\t\"3\n\x0cMkdirRequest\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x11\n\tdirectory\x18\x02 \x01(\t\"1\n\rMkdirResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"3\n\x0cRmdirRequest\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x11\n\tdirectory\x18\x02 \x01(\t\"1\n\rRmdirResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"7\n\x11\x44\x65leteFileRequest\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08\x66ilename\x18\x02 \x01(\t\"6\n\x12\x44\x65leteFileResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"&\n\x12\x44\x65leteBlockRequest\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\"7\n\x13\x44\x65leteBlockResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"\"\n\x0eGetFileRequest\x12\x10\n\x08\x66ilepath\x18\x01 \x01(\t\"@\n\x10HeartbeatRequest\x12\x15\n\rdatanode_name\x18\x01 \x01(\t\x12\x15\n\rstored_blocks\x18\x02 \x03(\t\"#\n\x11HeartbeatResponse\x12\x0e\n\x06status\x18\x01 \x01(\t\"R\n\x17\x44\x61taNodeRegisterRequest\x12\x15\n\rdatanode_name\x18\x01 \x01(\t\x12\x12\n\nip_address\x18\x02 \x01(\t\x12\x0c\n\x04port\x18\x03 \x01(\x05\"<\n\x18\x44\x61taNodeRegisterResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"=\n\tBlockInfo\x12\x10\n\x08\x62lock_id\x18\x01 \x01(\t\x12\x0c\n\x04size\x18\x02 \x01(\x03\x12\x10\n\x08\x63hecksum\x18\x03 \x01(\t\"K\n\x12\x42lockReportRequest\x12\x15\n\rdatanode_name\x18\x01 \x01(\t\x12\x1e\n\x06\x62locks\x18\x02 \x03(\x0b\x32\x0e.dfs.BlockInfo\"&\n\x13\x42lockReportResponse\x12\x0f\n\x07message\x18\x01 \x01(\t2\xf3\x04\n\x0fNameNodeService\x12\x35\n\x0c\x41uthenticate\x12\x11.dfs.LoginRequest\x1a\x12.dfs.LoginResponse\x12\x37\n\x08Register\x12\x14.dfs.RegisterRequest\x1a\x15.dfs.RegisterResponse\x12\x46\n\x0fPutFileMetadata\x12\x18.dfs.FileMetadataRequest\x1a\x19.dfs.FileMetadataResponse\x12:\n\tListFiles\x12\x15.dfs.ListFilesRequest\x1a\x16.dfs.ListFilesResponse\x12.\n\x05Mkdir\x12\x11.dfs.MkdirRequest\x1a\x12.dfs.MkdirResponse\x12.\n\x05Rmdir\x12\x11.dfs.RmdirRequest\x1a\x12.dfs.RmdirResponse\x12=\n\nDeleteFile\x12\x16.dfs.DeleteFileRequest\x1a\x17.dfs.DeleteFileResponse\x12:\n\tHeartbeat\x12\x15.dfs.HeartbeatRequest\x1a\x16.dfs.HeartbeatResponse\x12O\n\x10RegisterDataNode\x12\x1c.dfs.DataNodeRegisterRequest\x1a\x1d.dfs.DataNodeRegisterResponse\x12@\n\x0b\x42lockReport\x12\x17.dfs.BlockReportRequest\x1a\x18.dfs.BlockReportResponse2\x92\x01\n\x0f\x44\x61taNodeService\x12=\n\nStoreBlock\x12\x16.dfs.StoreBlockRequest\x1a\x17.dfs.StoreBlockResponse\x12@\n\x0b\x44\x65leteBlock\x12\x17.dfs.DeleteBlockRequest\x1a\x18.dfs.DeleteBlockResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -52,35 +52,41 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_LISTFILESREQUEST']._serialized_start=645
   _globals['_LISTFILESREQUEST']._serialized_end=681
   _globals['_LISTFILESRESPONSE']._serialized_start=683
-  _globals['_LISTFILESRESPONSE']._serialized_end=755
-  _globals['_MKDIRREQUEST']._serialized_start=757
-  _globals['_MKDIRREQUEST']._serialized_end=808
-  _globals['_MKDIRRESPONSE']._serialized_start=810
-  _globals['_MKDIRRESPONSE']._serialized_end=859
-  _globals['_DELETEFILEREQUEST']._serialized_start=861
-  _globals['_DELETEFILEREQUEST']._serialized_end=916
-  _globals['_DELETEFILERESPONSE']._serialized_start=918
-  _globals['_DELETEFILERESPONSE']._serialized_end=972
-  _globals['_DELETEBLOCKREQUEST']._serialized_start=974
-  _globals['_DELETEBLOCKREQUEST']._serialized_end=1012
-  _globals['_DELETEBLOCKRESPONSE']._serialized_start=1014
-  _globals['_DELETEBLOCKRESPONSE']._serialized_end=1069
-  _globals['_HEARTBEATREQUEST']._serialized_start=1071
-  _globals['_HEARTBEATREQUEST']._serialized_end=1135
-  _globals['_HEARTBEATRESPONSE']._serialized_start=1137
-  _globals['_HEARTBEATRESPONSE']._serialized_end=1172
-  _globals['_DATANODEREGISTERREQUEST']._serialized_start=1174
-  _globals['_DATANODEREGISTERREQUEST']._serialized_end=1256
-  _globals['_DATANODEREGISTERRESPONSE']._serialized_start=1258
-  _globals['_DATANODEREGISTERRESPONSE']._serialized_end=1318
-  _globals['_BLOCKINFO']._serialized_start=1320
-  _globals['_BLOCKINFO']._serialized_end=1381
-  _globals['_BLOCKREPORTREQUEST']._serialized_start=1383
-  _globals['_BLOCKREPORTREQUEST']._serialized_end=1458
-  _globals['_BLOCKREPORTRESPONSE']._serialized_start=1460
-  _globals['_BLOCKREPORTRESPONSE']._serialized_end=1498
-  _globals['_NAMENODESERVICE']._serialized_start=1501
-  _globals['_NAMENODESERVICE']._serialized_end=2080
-  _globals['_DATANODESERVICE']._serialized_start=2083
-  _globals['_DATANODESERVICE']._serialized_end=2229
+  _globals['_LISTFILESRESPONSE']._serialized_end=779
+  _globals['_MKDIRREQUEST']._serialized_start=781
+  _globals['_MKDIRREQUEST']._serialized_end=832
+  _globals['_MKDIRRESPONSE']._serialized_start=834
+  _globals['_MKDIRRESPONSE']._serialized_end=883
+  _globals['_RMDIRREQUEST']._serialized_start=885
+  _globals['_RMDIRREQUEST']._serialized_end=936
+  _globals['_RMDIRRESPONSE']._serialized_start=938
+  _globals['_RMDIRRESPONSE']._serialized_end=987
+  _globals['_DELETEFILEREQUEST']._serialized_start=989
+  _globals['_DELETEFILEREQUEST']._serialized_end=1044
+  _globals['_DELETEFILERESPONSE']._serialized_start=1046
+  _globals['_DELETEFILERESPONSE']._serialized_end=1100
+  _globals['_DELETEBLOCKREQUEST']._serialized_start=1102
+  _globals['_DELETEBLOCKREQUEST']._serialized_end=1140
+  _globals['_DELETEBLOCKRESPONSE']._serialized_start=1142
+  _globals['_DELETEBLOCKRESPONSE']._serialized_end=1197
+  _globals['_GETFILEREQUEST']._serialized_start=1199
+  _globals['_GETFILEREQUEST']._serialized_end=1233
+  _globals['_HEARTBEATREQUEST']._serialized_start=1235
+  _globals['_HEARTBEATREQUEST']._serialized_end=1299
+  _globals['_HEARTBEATRESPONSE']._serialized_start=1301
+  _globals['_HEARTBEATRESPONSE']._serialized_end=1336
+  _globals['_DATANODEREGISTERREQUEST']._serialized_start=1338
+  _globals['_DATANODEREGISTERREQUEST']._serialized_end=1420
+  _globals['_DATANODEREGISTERRESPONSE']._serialized_start=1422
+  _globals['_DATANODEREGISTERRESPONSE']._serialized_end=1482
+  _globals['_BLOCKINFO']._serialized_start=1484
+  _globals['_BLOCKINFO']._serialized_end=1545
+  _globals['_BLOCKREPORTREQUEST']._serialized_start=1547
+  _globals['_BLOCKREPORTREQUEST']._serialized_end=1622
+  _globals['_BLOCKREPORTRESPONSE']._serialized_start=1624
+  _globals['_BLOCKREPORTRESPONSE']._serialized_end=1662
+  _globals['_NAMENODESERVICE']._serialized_start=1665
+  _globals['_NAMENODESERVICE']._serialized_end=2292
+  _globals['_DATANODESERVICE']._serialized_start=2295
+  _globals['_DATANODESERVICE']._serialized_end=2441
 # @@protoc_insertion_point(module_scope)

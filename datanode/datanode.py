@@ -181,6 +181,24 @@ class DataNodeServicer(file_pb2_grpc.DataNodeServiceServicer):
                 return file_pb2.DeleteBlockResponse(success=False, message=f"Error al eliminar bloques: {str(e)}")
         else:
             return file_pb2.DeleteBlockResponse(success=False, message="El archivo no existe en este DataNode.")
+        
+
+    def RetrieveBlock(self, request, context):
+        filename = request.filename
+        block_number = request.block_number
+        storage_dir = self.get_storage_directory()  # Usa la carpeta común 'downloads'
+        file_dir = os.path.join(storage_dir, filename)
+        block_path = os.path.join(file_dir, f'block_{block_number}.txt')
+
+        if not os.path.exists(block_path):
+            return file_pb2.RetrieveBlockResponse(success=False, message=f"Bloque {block_number} no encontrado.")
+
+        try:
+            with open(block_path, 'rb') as f:
+                data = f.read()
+            return file_pb2.RetrieveBlockResponse(success=True, data=data)
+        except Exception as e:
+            return file_pb2.RetrieveBlockResponse(success=False, message=f"Error al leer el bloque: {str(e)}")
 
 
 def serve(ip_address, port):
@@ -214,6 +232,6 @@ if __name__ == "__main__":
     #serve('DataNode1', 5001)  
     #serve('DataNode2', 5002)
     
-    serve('127.0.0.1',5001)
-    #serve('127.0.0.1',5002)
+    #serve('127.0.0.1',5001)
+    serve('127.0.0.1',5002)
     #serve('127.0.0.1',5003)

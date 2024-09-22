@@ -269,6 +269,26 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
         # y enviar una solicitud para replicar el bloque
         print(f"Programando replicación para el bloque {block_id}")
 
+
+    def GetFileMetadata(self, request, context):
+        filename = request.filename
+        username = request.username
+
+        # Verifica si el archivo existe para el usuario
+        if username not in self.user_files or filename not in self.user_files[username]:
+            return file_pb2.FileMetadataResponse(success=False, message="Archivo no encontrado.")
+
+        # Recuperar la metadata de los bloques y los DataNodes correspondientes
+        file_metadata = []
+        for block in self.block_metadata[filename]:  # Asumimos que se almacena en un diccionario o base de datos
+            file_metadata.append(file_pb2.FileBlockMetadata(
+                block_number=block.block_number,
+                start_byte=block.start_byte,
+                end_byte=block.end_byte,
+                datanode=block.datanode
+            ))
+
+        return file_pb2.FileMetadataResponse(success=True, metadata=file_metadata)
     
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
