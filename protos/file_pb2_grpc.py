@@ -5,7 +5,7 @@ import warnings
 
 import file_pb2 as file__pb2
 
-GRPC_GENERATED_VERSION = '1.66.1'
+GRPC_GENERATED_VERSION = '1.66.0'
 GRPC_VERSION = grpc.__version__
 _version_not_supported = False
 
@@ -85,6 +85,11 @@ class NameNodeServiceStub(object):
                 request_serializer=file__pb2.BlockReportRequest.SerializeToString,
                 response_deserializer=file__pb2.BlockReportResponse.FromString,
                 _registered_method=True)
+        self.GetFileMetadata = channel.unary_unary(
+                '/dfs.NameNodeService/GetFileMetadata',
+                request_serializer=file__pb2.FileMetadataRequest.SerializeToString,
+                response_deserializer=file__pb2.FileMetadataResponse.FromString,
+                _registered_method=True)
 
 
 class NameNodeServiceServicer(object):
@@ -152,6 +157,12 @@ class NameNodeServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetFileMetadata(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_NameNodeServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -204,6 +215,11 @@ def add_NameNodeServiceServicer_to_server(servicer, server):
                     servicer.BlockReport,
                     request_deserializer=file__pb2.BlockReportRequest.FromString,
                     response_serializer=file__pb2.BlockReportResponse.SerializeToString,
+            ),
+            'GetFileMetadata': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetFileMetadata,
+                    request_deserializer=file__pb2.FileMetadataRequest.FromString,
+                    response_serializer=file__pb2.FileMetadataResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -487,6 +503,33 @@ class NameNodeService(object):
             metadata,
             _registered_method=True)
 
+    @staticmethod
+    def GetFileMetadata(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/dfs.NameNodeService/GetFileMetadata',
+            file__pb2.FileMetadataRequest.SerializeToString,
+            file__pb2.FileMetadataResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
 
 class DataNodeServiceStub(object):
     """Servicio para el DataNode
@@ -508,6 +551,11 @@ class DataNodeServiceStub(object):
                 request_serializer=file__pb2.DeleteBlockRequest.SerializeToString,
                 response_deserializer=file__pb2.DeleteBlockResponse.FromString,
                 _registered_method=True)
+        self.RetrieveBlock = channel.unary_unary(
+                '/dfs.DataNodeService/RetrieveBlock',
+                request_serializer=file__pb2.RetrieveBlockRequest.SerializeToString,
+                response_deserializer=file__pb2.RetrieveBlockResponse.FromString,
+                _registered_method=True)
 
 
 class DataNodeServiceServicer(object):
@@ -527,6 +575,12 @@ class DataNodeServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def RetrieveBlock(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_DataNodeServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -539,6 +593,11 @@ def add_DataNodeServiceServicer_to_server(servicer, server):
                     servicer.DeleteBlock,
                     request_deserializer=file__pb2.DeleteBlockRequest.FromString,
                     response_serializer=file__pb2.DeleteBlockResponse.SerializeToString,
+            ),
+            'RetrieveBlock': grpc.unary_unary_rpc_method_handler(
+                    servicer.RetrieveBlock,
+                    request_deserializer=file__pb2.RetrieveBlockRequest.FromString,
+                    response_serializer=file__pb2.RetrieveBlockResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -596,6 +655,33 @@ class DataNodeService(object):
             '/dfs.DataNodeService/DeleteBlock',
             file__pb2.DeleteBlockRequest.SerializeToString,
             file__pb2.DeleteBlockResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def RetrieveBlock(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/dfs.DataNodeService/RetrieveBlock',
+            file__pb2.RetrieveBlockRequest.SerializeToString,
+            file__pb2.RetrieveBlockResponse.FromString,
             options,
             channel_credentials,
             insecure,

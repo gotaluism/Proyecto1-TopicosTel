@@ -3,6 +3,8 @@ import os
 import time
 from concurrent import futures
 import grpc
+import threading
+
 # Agregar la ruta de la carpeta 'protos' al PYTHONPATH
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'protos')))
 
@@ -17,14 +19,13 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
             "user1": "pass1",
             "user2": "pass2"
         }
-        self.datanodes = ["127.0.0.1:5001","127.0.0.1:5002","127.0.0.1:5003"]  
+        self.datanodes = {}  # Cambiamos a diccionario para manejar DataNodes activos
         self.user_files = {}
         self.user_directories = {}
         self.datanode_heartbeats = {}
         self.datanode_blocks = {}
-        self.active_datanodes = {}
-        self.file_metadata = {}
-        self.block_locations = {}        
+        self.file_metadata = {}  # Estructura: {filename: {block_number: [datanodes]}}
+        self.block_locations = {}  # Estructura: {block_id: set(datanodes)}       
 
         for user in self.users:
             self.user_directories[user] = []
@@ -47,46 +48,69 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
         filename = request.filename
         username = request.username
         metadata = []
+        block_locations = []
     
-        # Asegúrate de que cada bloque vaya a un DataNode diferente
+        # Verificar si hay suficientes DataNodes activos
+        if len(self.datanodes) < 2:
+            return file_pb2.FileMetadataResponse(success=False, message="No hay suficientes DataNodes disponibles.")
+
+        # Asignar DataNodes para cada bloque con replicación
+        datanode_list = list(self.datanodes.keys())
         for block in request.metadata:
-            datanode_index = (block.block_number - 1) % len(self.datanodes)  # Distribución circular
-            datanode = self.datanodes[datanode_index]
+            assigned_datanodes = self.select_datanodes_for_block(block.block_number)
             metadata.append(file_pb2.FileBlockMetadata(
                 block_number=block.block_number,
                 start_byte=block.start_byte,
                 end_byte=block.end_byte,
-                datanode=datanode
+                datanodes=assigned_datanodes
             ))
-    
+
+            # Actualizar metadata de bloques
+            block_id = f"{filename}_block_{block.block_number}"
+            self.block_locations[block_id] = set(assigned_datanodes)
+
+            # Actualizar metadata del archivo
+            if filename not in self.file_metadata:
+                self.file_metadata[filename] = {}
+            self.file_metadata[filename][block.block_number] = assigned_datanodes
+
         if username not in self.user_files:
             self.user_files[username] = []
-        self.user_files[username].append(filename)
+        if filename not in self.user_files[username]:
+            self.user_files[username].append(filename)
     
         return file_pb2.FileMetadataResponse(success=True, metadata=metadata)
 
+    def select_datanodes_for_block(self, block_number):
+        # Seleccionar dos DataNodes diferentes para replicación
+        datanode_list = list(self.datanodes.keys())
+        index = block_number % len(datanode_list)
+        datanode1 = datanode_list[index]
+        datanode2 = datanode_list[(index + 1) % len(datanode_list)]
+        return [datanode1, datanode2]
 
-    def PutFile(self, request, context):
+    def GetFileMetadata(self, request, context):
         filename = request.filename
-        data = request.data
-        out_dir = './downloads'
+        username = request.username
 
-        file_dir = os.path.join(out_dir, os.path.dirname(filename))
-        if not os.path.exists(file_dir):
-            os.makedirs(file_dir)
+        # Verifica si el archivo existe para el usuario
+        if username not in self.user_files or filename not in self.user_files[username]:
+            return file_pb2.FileMetadataResponse(success=False, message="Archivo no encontrado.")
 
-        try:
-
-            file_path = os.path.join(file_dir, os.path.basename(filename))
-
-            with open(file_path, 'wb') as f:
-                f.write(data)
-
-            print(f"Bloque recibido y guardado en: {file_path}")
-            return file_pb2.PutFileResponse(success=True, message=f"Bloque {file_path} recibido con éxito.")
-        
-        except Exception as e:
-            return file_pb2.PutFileResponse(success=False, message=f"Error al guardar el bloque: {str(e)}")
+        # Recuperar la metadata de los bloques y los DataNodes correspondientes
+        file_metadata = []
+        if filename in self.file_metadata:
+            for block_number, datanodes in self.file_metadata[filename].items():
+                # Puedes ajustar start_byte y end_byte si es necesario
+                file_metadata.append(file_pb2.FileBlockMetadata(
+                    block_number=block_number,
+                    start_byte=0,
+                    end_byte=0,
+                    datanodes=datanodes
+                ))
+            return file_pb2.FileMetadataResponse(success=True, metadata=file_metadata)
+        else:
+            return file_pb2.FileMetadataResponse(success=False, message="Metadata del archivo no encontrada.")
 
     def ListFiles(self, request, context):
         username = request.username
@@ -109,8 +133,7 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
         username = request.username
         new_dir = request.directory
         print(f"Solicitud de mkdir para el usuario: {username}, directorio: {new_dir}")       
-   
-        
+    
         if not username or not new_dir:
             print(f"Error: datos inválidos en la solicitud. Username: '{username}', Directorio: '{new_dir}'")
             return file_pb2.MkdirResponse(success=False, message="Datos inválidos.")
@@ -154,23 +177,32 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
 
         self.user_files[username].remove(filename)
 
-        for datanode in self.datanodes:
-            datanode_channel = grpc.insecure_channel(datanode)
-            datanode_stub = file_pb2_grpc.DataNodeServiceStub(datanode_channel)
+        # Eliminar bloques del archivo en los DataNodes correspondientes
+        if filename in self.file_metadata:
+            for block_number, datanodes in self.file_metadata[filename].items():
+                for datanode in datanodes:
+                    try:
+                        datanode_channel = grpc.insecure_channel(datanode)
+                        datanode_stub = file_pb2_grpc.DataNodeServiceStub(datanode_channel)
 
-            delete_request = file_pb2.DeleteBlockRequest(filename=filename)
-            delete_response = datanode_stub.DeleteBlock(delete_request)
-            if not delete_response.success:
-                print(f"Error al eliminar bloques del archivo '{filename}' en DataNode {datanode}: {delete_response.message}")
+                        delete_request = file_pb2.DeleteBlockRequest(filename=filename, block_number=block_number)
+                        delete_response = datanode_stub.DeleteBlock(delete_request)
+                        if not delete_response.success:
+                            print(f"Error al eliminar bloque {block_number} del archivo '{filename}' en DataNode {datanode}: {delete_response.message}")
+                    except Exception as e:
+                        print(f"Excepción al conectar con DataNode {datanode}: {str(e)}")
+
+            # Remover metadata del archivo
+            del self.file_metadata[filename]
 
         return file_pb2.DeleteFileResponse(success=True, message="Archivo eliminado correctamente.")
     
     def RegisterDataNode(self, request, context):
         datanode_name = request.datanode_name
-        if datanode_name in self.active_datanodes:
+        if datanode_name in self.datanodes:
             return file_pb2.DataNodeRegisterResponse(success=False, message="DataNode ya registrado")
         
-        self.active_datanodes[datanode_name] = {
+        self.datanodes[datanode_name] = {
             'ip_address': request.ip_address,
             'port': request.port,
             'last_heartbeat': time.time()
@@ -182,11 +214,11 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
         datanode_name = request.datanode_name
         
         # Verificar si el DataNode está registrado
-        if datanode_name not in self.active_datanodes:
+        if datanode_name not in self.datanodes:
             return file_pb2.HeartbeatResponse(status="ERROR: DataNode no registrado")
         
         # Actualizar el tiempo del último heartbeat
-        self.active_datanodes[datanode_name]['last_heartbeat'] = time.time()
+        self.datanodes[datanode_name]['last_heartbeat'] = time.time()
         
         # Actualizar la lista de bloques almacenados
         stored_blocks = request.stored_blocks
@@ -200,14 +232,87 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
    
     def check_datanodes(self):
         """Verifica si algún DataNode ha dejado de enviar heartbeats"""
-        current_time = time.time()
-        for datanode_name in list(self.active_datanodes.keys()):
-            last_heartbeat = self.active_datanodes[datanode_name]['last_heartbeat']
-            if current_time - last_heartbeat > 10:
-                print(f"DataNode {datanode_name} no responde. Último heartbeat hace más de 10 segundos.")
-                del self.active_datanodes[datanode_name]
-                if datanode_name in self.datanode_blocks:
-                    del self.datanode_blocks[datanode_name]
+        while True:
+            current_time = time.time()
+            for datanode_name in list(self.datanodes.keys()):
+                last_heartbeat = self.datanodes[datanode_name]['last_heartbeat']
+                if current_time - last_heartbeat > 10:
+                    print(f"DataNode {datanode_name} no responde. Último heartbeat hace más de 10 segundos.")
+                    self.handle_datanode_failure(datanode_name)
+            time.sleep(5)
+
+    def handle_datanode_failure(self, datanode_name):
+        # Remover DataNode de la lista de activos
+        del self.datanodes[datanode_name]
+        if datanode_name in self.datanode_blocks:
+            del self.datanode_blocks[datanode_name]
+
+        # Iniciar proceso de replicación de bloques afectados
+        affected_blocks = []
+        for block_id, datanodes in self.block_locations.items():
+            if datanode_name in datanodes:
+                datanodes.remove(datanode_name)
+                if len(datanodes) < 2:
+                    affected_blocks.append((block_id, datanodes))
+
+        for block_id, datanodes in affected_blocks:
+            self.replicate_block(block_id, datanodes)
+
+    def replicate_block(self, block_id, current_datanodes):
+        # Seleccionar un nuevo DataNode para replicar el bloque
+        available_datanodes = set(self.datanodes.keys()) - set(current_datanodes)
+        if not available_datanodes:
+            print(f"No hay DataNodes disponibles para replicar el bloque {block_id}")
+            return
+
+        source_datanode = list(current_datanodes)[0]
+        target_datanode = list(available_datanodes)[0]
+
+        # Iniciar la replicación
+        try:
+            # Obtener el bloque del DataNode fuente
+            source_channel = grpc.insecure_channel(source_datanode)
+            source_stub = file_pb2_grpc.DataNodeServiceStub(source_channel)
+
+            filename, block_number = block_id.rsplit('_block_', 1)
+            retrieve_request = file_pb2.RetrieveBlockRequest(
+                filename=filename,
+                block_number=int(block_number)
+            )
+            retrieve_response = source_stub.RetrieveBlock(retrieve_request)
+
+            if retrieve_response.success:
+                # Enviar el bloque al DataNode de destino
+                target_channel = grpc.insecure_channel(target_datanode)
+                target_stub = file_pb2_grpc.DataNodeServiceStub(target_channel)
+
+                store_request = file_pb2.StoreBlockRequest(
+                    filename=filename,
+                    block_number=int(block_number),
+                    data=retrieve_response.data
+                )
+                store_response = target_stub.StoreBlock(store_request)
+
+                if store_response.success:
+                    print(f"Bloque {block_id} replicado exitosamente a {target_datanode}")
+                    # Actualizar metadata
+                    self.block_locations[block_id].add(target_datanode)
+                    self.update_file_metadata(filename, int(block_number), target_datanode)
+                else:
+                    print(f"Error al almacenar bloque en {target_datanode}: {store_response.message}")
+            else:
+                print(f"Error al recuperar bloque de {source_datanode}: {retrieve_response.message}")
+        except Exception as e:
+            print(f"Excepción durante la replicación del bloque {block_id}: {str(e)}")
+
+    def update_file_metadata(self, filename, block_number, datanode):
+        if filename in self.file_metadata:
+            if block_number in self.file_metadata[filename]:
+                self.file_metadata[filename][block_number].append(datanode)
+            else:
+                self.file_metadata[filename][block_number] = [datanode]
+        else:
+            self.file_metadata[filename] = {block_number: [datanode]}
 
     def BlockReport(self, request, context):
         datanode_name = request.datanode_name
@@ -219,27 +324,10 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
         self.update_block_information(datanode_name, blocks)
 
         # Verificar la replicación y la integridad de los bloques
-        self.check_replication_and_integrity()
+        # (Puedes implementar verificación adicional aquí si es necesario)
 
         return file_pb2.BlockReportResponse(message="Block Report procesado correctamente")
     
-    def parse_block_id(self, block_id):
-        try:
-            # Usar os.path.split para manejar correctamente las rutas
-            file_path, block_filename = os.path.split(block_id)
-            
-            # Extraer el número de bloque
-            block_number_str = ''.join(filter(str.isdigit, block_filename))
-            if not block_number_str:
-                raise ValueError(f"No se pudo extraer el número de bloque de: {block_filename}")
-            
-            block_number = int(block_number_str)
-            
-            return file_path, block_number
-        except (ValueError, IndexError) as e:
-            print(f"Error al parsear block_id '{block_id}': {str(e)}")
-            return block_id, 0  # Retornamos valores por defecto en caso de error
-
     def update_block_information(self, datanode_name, blocks):
         for block in blocks:
             block_id = block.block_id
@@ -247,62 +335,20 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
                 self.block_locations[block_id] = set()
             self.block_locations[block_id].add(datanode_name)
 
-            file_path, block_number = self.parse_block_id(block_id)
-            if file_path not in self.file_metadata:
-                self.file_metadata[file_path] = {}
-            self.file_metadata[file_path][block_number] = {
-                'size': block.size,
-                'checksum': block.checksum
-            }
-
         print(f"Información de bloques actualizada para {datanode_name}")
-
-    def check_replication_and_integrity(self):
-        for block_id, locations in self.block_locations.items():
-            if len(locations) < 3:  # Asumiendo que queremos 3 réplicas
-                print(f"El bloque {block_id} necesita más réplicas. Actualmente en: {locations}")
-                self.schedule_replication(block_id, locations)
-
-    def schedule_replication(self, block_id, current_locations):
-        # Aquí implementarías la lógica para programar la replicación del bloque
-        # Por ejemplo, seleccionar un DataNode que tenga el bloque y otro que no lo tenga
-        # y enviar una solicitud para replicar el bloque
-        print(f"Programando replicación para el bloque {block_id}")
-
-
-    def GetFileMetadata(self, request, context):
-        filename = request.filename
-        username = request.username
-
-        # Verifica si el archivo existe para el usuario
-        if username not in self.user_files or filename not in self.user_files[username]:
-            return file_pb2.FileMetadataResponse(success=False, message="Archivo no encontrado.")
-
-        # Recuperar la metadata de los bloques y los DataNodes correspondientes
-        file_metadata = []
-        for block in self.block_metadata[filename]:  # Asumimos que se almacena en un diccionario o base de datos
-            file_metadata.append(file_pb2.FileBlockMetadata(
-                block_number=block.block_number,
-                start_byte=block.start_byte,
-                end_byte=block.end_byte,
-                datanode=block.datanode
-            ))
-
-        return file_pb2.FileMetadataResponse(success=True, metadata=file_metadata)
     
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     namenode_servicer = NameNodeServicer()
     file_pb2_grpc.add_NameNodeServiceServicer_to_server(namenode_servicer, server)
     server.add_insecure_port('[::]:5000')
-    print("Namenode escuchando en el puerto 5000...")
+    print("NameNode escuchando en el puerto 5000...")
     server.start()
-    server.wait_for_termination()
 
-    # Ejecuta la verificación de los DataNodes cada 10 segundos
-    while True:
-        namenode_servicer.check_datanodes()
-        time.sleep(10)
+    # Iniciar hilo para verificar DataNodes
+    threading.Thread(target=namenode_servicer.check_datanodes).start()
+
+    server.wait_for_termination()
 
 if __name__ == "__main__":
     serve()

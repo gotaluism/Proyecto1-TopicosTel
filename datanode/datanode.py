@@ -40,7 +40,6 @@ class DataNodeServicer(file_pb2_grpc.DataNodeServiceServicer):
                 print(f"Error durante el registro con NameNode: {str(e)}")
                 time.sleep(5)
 
-
     def send_heartbeat(self):
         while True:
             if not self.registered:
@@ -51,7 +50,7 @@ class DataNodeServicer(file_pb2_grpc.DataNodeServiceServicer):
             try:
                 heartbeat_request = file_pb2.HeartbeatRequest(
                     datanode_name=self.datanode_name,
-                    stored_blocks=self.stored_blocks
+                    stored_blocks=self.get_stored_blocks()
                 )
                 response = self.namenode_stub.Heartbeat(heartbeat_request)
                 print(f"Heartbeat enviado desde {self.datanode_name}. Respuesta del NameNode: {response.status}")
@@ -59,45 +58,22 @@ class DataNodeServicer(file_pb2_grpc.DataNodeServiceServicer):
                 print(f"Error al enviar heartbeat: {str(e)}")
                 self.registered = False
             time.sleep(5)
-    # def get_available_storage(self):
-    #     # Simular almacenamiento disponible (en GB)
-    #     return 100  # Ejemplo: 100 GB disponibles
 
     def get_storage_directory(self):
         """Utiliza la ruta de almacenamiento existente en la carpeta 'downloads'."""
         return './downloads'
-    
-    def get_block_info(self):
+
+    def get_stored_blocks(self):
+        """Obtiene la lista de bloques almacenados en este DataNode"""
         storage_dir = self.get_storage_directory()
-        block_info = []
+        stored_blocks = []
         for dirpath, dirnames, filenames in os.walk(storage_dir):
             for filename in filenames:
-                file_path = os.path.join(dirpath, filename)
-                relative_path = os.path.relpath(file_path, storage_dir)
-                file_size = os.path.getsize(file_path)
-                checksum = self.calculate_checksum(file_path)
-                
-                # Aceptar cualquier archivo que contenga 'block' en su nombre
-                if 'block' in filename.lower():
-                    block_info.append(file_pb2.BlockInfo(
-                        block_id=relative_path,
-                        size=file_size,
-                        checksum=checksum
-                    ))
-                else:
-                    print(f"Ignorando archivo que no es un bloque: {relative_path}")
-        
-        return block_info
-    
-    def calculate_checksum(self, file_path):
-        hasher = hashlib.md5()
-        with open(file_path, 'rb') as f:
-            buf = f.read(65536)
-            while len(buf) > 0:
-                hasher.update(buf)
-                buf = f.read(65536)
-        return hasher.hexdigest()
-    
+                if 'block' in filename:
+                    relative_path = os.path.relpath(os.path.join(dirpath, filename), storage_dir)
+                    stored_blocks.append(relative_path)
+        return stored_blocks
+
     def send_block_report(self):
         while True:
             if not self.registered:
@@ -114,18 +90,33 @@ class DataNodeServicer(file_pb2_grpc.DataNodeServiceServicer):
                 print(f"Block Report enviado. Respuesta del NameNode: {response.message}")
             except Exception as e:
                 print(f"Error al enviar Block Report: {str(e)}")
-            
             time.sleep(60)  # Enviar Block Report cada 60 segundos
 
-    def get_stored_blocks(self):
-        """Obtiene la lista de bloques almacenados en este DataNode"""
+    def get_block_info(self):
         storage_dir = self.get_storage_directory()
-        stored_blocks = []
+        block_info = []
         for dirpath, dirnames, filenames in os.walk(storage_dir):
             for filename in filenames:
-                relative_path = os.path.relpath(os.path.join(dirpath, filename), storage_dir)
-                stored_blocks.append(relative_path)
-        return stored_blocks
+                if 'block' in filename:
+                    file_path = os.path.join(dirpath, filename)
+                    relative_path = os.path.relpath(file_path, storage_dir)
+                    file_size = os.path.getsize(file_path)
+                    checksum = self.calculate_checksum(file_path)
+                    block_info.append(file_pb2.BlockInfo(
+                        block_id=relative_path,
+                        size=file_size,
+                        checksum=checksum
+                    ))
+        return block_info
+
+    def calculate_checksum(self, file_path):
+        hasher = hashlib.md5()
+        with open(file_path, 'rb') as f:
+            buf = f.read(65536)
+            while len(buf) > 0:
+                hasher.update(buf)
+                buf = f.read(65536)
+        return hasher.hexdigest()
 
     def StoreBlock(self, request, context):
         filename = request.filename
@@ -144,7 +135,7 @@ class DataNodeServicer(file_pb2_grpc.DataNodeServiceServicer):
                 f.write(data)
 
             # Actualizar la lista de bloques almacenados
-            block_entry = f'{filename}\\block_{block_number}.txt'
+            block_entry = os.path.join(filename, f'block_{block_number}.txt')
             if block_entry not in self.stored_blocks:
                 self.stored_blocks.append(block_entry)
 
@@ -154,34 +145,30 @@ class DataNodeServicer(file_pb2_grpc.DataNodeServiceServicer):
 
     def DeleteBlock(self, request, context):
         filename = request.filename
+        block_number = request.block_number
 
-        # Definir la ruta a la carpeta donde se guardan los bloques del archivo
+        # Definir la ruta al bloque específico
         storage_dir = self.get_storage_directory()
         file_dir = os.path.join(storage_dir, filename)
+        block_path = os.path.join(file_dir, f'block_{block_number}.txt')
 
-        # Verifica si la carpeta del archivo existe
-        if os.path.exists(file_dir):
+        # Verifica si el bloque existe
+        if os.path.exists(block_path):
             try:
-                # Elimina todos los bloques dentro de la carpeta del archivo
-                for block_file in os.listdir(file_dir):
-                    block_path = os.path.join(file_dir, block_file)
-                    os.remove(block_path)
+                # Elimina el bloque
+                os.remove(block_path)
 
-                    # Remover el bloque de la lista de bloques almacenados
-                    block_entry = f'{filename}\\{block_file}'
-                    if block_entry in self.stored_blocks:
-                        self.stored_blocks.remove(block_entry)  # ACTUALIZAR LA LISTA DE BLOQUES
+                # Remover el bloque de la lista de bloques almacenados
+                block_entry = os.path.join(filename, f'block_{block_number}.txt')
+                if block_entry in self.stored_blocks:
+                    self.stored_blocks.remove(block_entry)  # ACTUALIZAR LA LISTA DE BLOQUES
 
-                # Elimina la carpeta vacía del archivo
-                os.rmdir(file_dir)
-
-                print(f"Bloques del archivo '{filename}' eliminados exitosamente.")
-                return file_pb2.DeleteBlockResponse(success=True, message="Bloques eliminados correctamente.")
+                print(f"Bloque '{block_number}' del archivo '{filename}' eliminado exitosamente.")
+                return file_pb2.DeleteBlockResponse(success=True, message="Bloque eliminado correctamente.")
             except Exception as e:
-                return file_pb2.DeleteBlockResponse(success=False, message=f"Error al eliminar bloques: {str(e)}")
+                return file_pb2.DeleteBlockResponse(success=False, message=f"Error al eliminar bloque: {str(e)}")
         else:
-            return file_pb2.DeleteBlockResponse(success=False, message="El archivo no existe en este DataNode.")
-        
+            return file_pb2.DeleteBlockResponse(success=False, message="El bloque no existe en este DataNode.")
 
     def RetrieveBlock(self, request, context):
         filename = request.filename
@@ -199,7 +186,6 @@ class DataNodeServicer(file_pb2_grpc.DataNodeServiceServicer):
             return file_pb2.RetrieveBlockResponse(success=True, data=data)
         except Exception as e:
             return file_pb2.RetrieveBlockResponse(success=False, message=f"Error al leer el bloque: {str(e)}")
-
 
 def serve(ip_address, port):
     # Conectar con el NameNode
@@ -228,10 +214,7 @@ def serve(ip_address, port):
     server.wait_for_termination()
 
 if __name__ == "__main__":
-    # Cambiar a DataNode2 para el segundo nodo
-    #serve('DataNode1', 5001)  
-    #serve('DataNode2', 5002)
-    
-    #serve('127.0.0.1',5001)
-    serve('127.0.0.1',5002)
-    #serve('127.0.0.1',5003)
+    # Solicitar al usuario el número del DataNode
+    node_number = int(input("Ingrese el número del DataNode (por ejemplo, 1 para el DataNode1): "))
+    port = 5000 + node_number
+    serve('127.0.0.1', port)

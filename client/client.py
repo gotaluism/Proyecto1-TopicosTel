@@ -42,18 +42,19 @@ class DFSClient:
         source_path = os.path.join(in_path, filename)
         chunk_num = 1
 
-        destination_dir = os.path.join(out_path, filename)
-        if not os.path.exists(destination_dir):
-            os.makedirs(destination_dir)
+        # Crear un directorio para los bloques, por ejemplo, './blocks/<filename>/'
+        blocks_dir = os.path.join(out_path, 'blocks', filename)
+        if not os.path.exists(blocks_dir):
+            os.makedirs(blocks_dir)
 
-        self.delete_files_in_folder(destination_dir)  # Borrar archivos anteriores en la carpeta
+        self.delete_files_in_folder(blocks_dir)  # Borrar archivos anteriores en la carpeta
 
         with open(source_path, 'rb') as file:
             chunk = file.read(chunk_size)  # Lee hasta el tamaño de 64KB
             metadata_table = []
 
             while chunk:
-                chunk_name = os.path.join(destination_dir, f"block{chunk_num:02d}.txt")
+                chunk_name = os.path.join(blocks_dir, f"block{chunk_num:02d}.txt")
                 start_byte = (chunk_num - 1) * chunk_size
                 end_byte = start_byte + len(chunk)
 
@@ -78,11 +79,14 @@ class DFSClient:
         return metadata_table
 
     def delete_files_in_folder(self, folder_path):
-        files = os.listdir(folder_path)
-        for file_name in files:
-            file_path = os.path.join(folder_path, file_name)
-            if os.path.isfile(file_path):
-                os.remove(file_path)
+        if os.path.exists(folder_path):
+            files = os.listdir(folder_path)
+            for file_name in files:
+                file_path = os.path.join(folder_path, file_name)
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
 
     def put(self, filepath):
         if not os.path.exists(filepath):
@@ -92,9 +96,9 @@ class DFSClient:
         filename = os.path.basename(filepath)
         file_dir = os.path.dirname(filepath)
         if self.path != None:
-            out_dir = './downloads' + "/" + self.path
+            out_dir = os.path.join('./', self.path)
         else:            
-            out_dir = './downloads' 
+            out_dir = './' 
         chunk_size = 64 * 1024  # Tamaño de cada bloque 64 KB
 
         # Particionar el archivo en bloques y crear metadata
@@ -115,17 +119,20 @@ class DFSClient:
         if response.success:
             print("Metadata recibida del NameNode con ubicación de DataNodes:")
             for block in response.metadata:
-                print(f"Bloque {block.block_number}: Bytes {block.start_byte} - {block.end_byte}, DataNode: {block.datanode}")
+                print(f"Bloque {block.block_number}: Bytes {block.start_byte} - {block.end_byte}, DataNodes: {block.datanodes}")
 
             # Enviar los bloques a los DataNodes
-            for block, block_metadata in zip(metadata, response.metadata):
-                self.send_to_datanode(block_metadata.datanode, block)
+            for block_info, block_metadata in zip(metadata, response.metadata):
+                for datanode in block_metadata.datanodes:
+                    self.send_to_datanode(datanode, block_info)
 
         return True
     
     def get(self, filename):
         if self.username is None:
             print("No hay un usuario autenticado.")
+            return False
+
         metadata_request = file_pb2.FileMetadataRequest(
             filename=filename,
             username=self.username
@@ -136,60 +143,68 @@ class DFSClient:
             print(f"Error al obtener metadata del archivo {filename}: {response.message}")
             return False
 
-        # Crear la carpeta de salida si no existe
-        if self.path != None:
-            out_dir = './downloads' + "/" + self.path
-        else:            
-            out_dir = './downloads'
-        
+        # Crear la carpeta de salida 'recovered' si no existe
+        out_dir = './recovered'
         if not os.path.exists(out_dir):
             os.makedirs(out_dir)
 
-        # Descargar cada bloque desde el DataNode correspondiente
+        # Asegurarnos de que no exista un directorio con el mismo nombre del archivo
+        file_path = os.path.join(out_dir, filename)
+        if os.path.isdir(file_path):
+            print(f"Error: Existe un directorio con el mismo nombre del archivo '{filename}' en 'recovered'.")
+            return False
+
+        # Descargar cada bloque desde los DataNodes correspondientes
         file_blocks = []
         for block in response.metadata:
-            block_data = self.retrieve_from_datanode(block.datanode, filename, block.block_number)
+            block_data = None
+            for datanode in block.datanodes:
+                block_data = self.retrieve_from_datanode(datanode, filename, block.block_number)
+                if block_data:
+                    break  # Si se obtiene el bloque, no se intenta con otros DataNodes
             if block_data:
                 file_blocks.append((block.block_number, block_data))
             else:
-                print(f"Error al descargar bloque {block.block_number} desde {block.datanode}")
+                print(f"Error al descargar bloque {block.block_number} desde los DataNodes")
                 return False
 
         # Ordenar los bloques por número para reconstruir el archivo
         file_blocks.sort(key=lambda x: x[0])
 
-        # Ensamblar el archivo
-        file_path = os.path.join(out_dir, filename)
+        # Ensamblar el archivo en la carpeta 'recovered'
         with open(file_path, 'wb') as file:
             for _, block_data in file_blocks:
                 file.write(block_data)
 
-        print(f"Archivo {filename} ensamblado correctamente.")
+        print(f"Archivo '{filename}' ensamblado correctamente en '{file_path}'.")
         return True
 
     def retrieve_from_datanode(self, datanode_address, filename, block_number):
-        datanode_channel = grpc.insecure_channel(datanode_address)
-        datanode_stub = file_pb2_grpc.DataNodeServiceStub(datanode_channel)
+        try:
+            datanode_channel = grpc.insecure_channel(datanode_address)
+            datanode_stub = file_pb2_grpc.DataNodeServiceStub(datanode_channel)
 
-        request = file_pb2.RetrieveBlockRequest(
-            filename=filename,
-            block_number=block_number
-        )
+            request = file_pb2.RetrieveBlockRequest(
+                filename=filename,
+                block_number=block_number
+            )
 
-        response = datanode_stub.RetrieveBlock(request)
+            response = datanode_stub.RetrieveBlock(request)
 
-        if response.success:
-            return response.data
-        else:
-            print(f"Error al recuperar bloque {block_number}: {response.message}")
+            if response.success:
+                return response.data
+            else:
+                print(f"Error al recuperar bloque {block_number} desde {datanode_address}: {response.message}")
+                return None
+        except Exception as e:
+            print(f"Excepción al conectarse con DataNode {datanode_address}: {str(e)}")
             return None
-            
 
     def ls(self):
         if self.username is None:
             print("No hay un usuario autenticado.")
             return
-    
+        
         request = file_pb2.ListFilesRequest(username=self.username)
         response = self.stub.ListFiles(request)
 
@@ -202,7 +217,6 @@ class DFSClient:
                 print(directoryname)
         else:
             print(f"Error al obtener lista de archivos: {response.message}")
-        
         
     def mkdir(self, directory):
         directory = directory.strip()
@@ -239,34 +253,38 @@ class DFSClient:
 
         if response.success:
             print(f"Archivo '{filename}' eliminado con éxito del sistema distribuido.")
-            local_path = os.path.join('./downloads', filename)
-            if os.path.exists(local_path):
+            # Eliminar bloques locales si existen
+            blocks_dir = os.path.join('./blocks', filename)
+            if os.path.exists(blocks_dir):
                 try:
-                    shutil.rmtree(local_path)
-                    print(f"Archivo '{filename}' eliminado también de la carpeta 'downloads' local.")
+                    shutil.rmtree(blocks_dir)
+                    print(f"Bloques locales del archivo '{filename}' eliminados.")
                 except Exception as e:
-                    print(f"Error al eliminar el archivo '{filename}' de la carpeta 'downloads' local: {str(e)}")
+                    print(f"Error al eliminar los bloques locales del archivo '{filename}': {str(e)}")
             else:
-                print(f"El archivo '{filename}' no se encontró en la carpeta 'downloads' local.")
+                print(f"No se encontraron bloques locales del archivo '{filename}'.")
         else:
             print(f"Error al eliminar el archivo: {response.message}")
             
     def send_to_datanode(self, datanode_address, block):
-        datanode_channel = grpc.insecure_channel(datanode_address)
-        datanode_stub = file_pb2_grpc.DataNodeServiceStub(datanode_channel)
+        try:
+            datanode_channel = grpc.insecure_channel(datanode_address)
+            datanode_stub = file_pb2_grpc.DataNodeServiceStub(datanode_channel)
 
-        request = file_pb2.StoreBlockRequest(
-            filename=block['filename'],
-            block_number=block['block_number'],
-            data=open(block['chunk_name'], 'rb').read()
-        )
+            request = file_pb2.StoreBlockRequest(
+                filename=block['filename'],
+                block_number=block['block_number'],
+                data=open(block['chunk_name'], 'rb').read()
+            )
 
-        response = datanode_stub.StoreBlock(request)
+            response = datanode_stub.StoreBlock(request)
 
-        if response.success:
-            print(f"Bloque {block['block_number']} enviado exitosamente a {datanode_address}.")
-        else:
-            print(f"Error al enviar bloque {block['block_number']} a {datanode_address}: {response.message}")
+            if response.success:
+                print(f"Bloque {block['block_number']} enviado exitosamente a {datanode_address}.")
+            else:
+                print(f"Error al enviar bloque {block['block_number']} a {datanode_address}: {response.message}")
+        except Exception as e:
+            print(f"Excepción al enviar bloque {block['block_number']} a {datanode_address}: {str(e)}")
 
     def cd(self):
         if self.username is None:
@@ -280,16 +298,14 @@ class DFSClient:
         response = self.stub.ListFiles(request)
 
         if directoryName in response.directorynames:
-            print("DDDDD")
-            print(directoryName)
             if self.path != None:
-                self.path = self.path + "/" + directoryName
+                self.path = os.path.join(self.path, directoryName)
             else:
                 self.path = directoryName
             print("Ruta actualizada a: " + self.path)
-
-        print("Esta carpeta no existe")
-        
+        else:
+            print("Esta carpeta no existe")
+            
 
     def show_menu(self):
         if self.path != None:
@@ -311,8 +327,8 @@ class DFSClient:
             print("Ejecutando comando 'cd'...")
             self.cd()
         elif command == "get":
-            print("Ejecutando comando 'get'...")
-            self.get()
+            filename = input("Ingrese el nombre del archivo que desea descargar: ")
+            self.get(filename)
         elif command == "put":
             filepath = input("Ingrese la ruta al archivo local que desea subir: ")
             self.put(filepath)

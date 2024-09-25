@@ -24,7 +24,6 @@ service DataNodeService {
   rpc RetrieveBlock(RetrieveBlockRequest) returns (RetrieveBlockResponse);
 }
 
-
 // Mensaje para autenticación de usuario
 message LoginRequest {
   string username = 1;
@@ -52,21 +51,20 @@ message FileBlockMetadata {
   int32 block_number = 1;
   int64 start_byte = 2;
   int64 end_byte = 3;
-  string datanode = 4;  // DataNode asignado para este bloque
+  repeated string datanodes = 4;  // Lista de DataNodes asignados para este bloque
 }
-
 
 message FileMetadataRequest {
     string filename = 1;
     string username = 2;
     repeated FileBlockMetadata metadata = 3;
-    
 }
 
 // Respuesta del NameNode con la metadata completa, incluyendo DataNodes asignados
 message FileMetadataResponse {
   bool success = 1;
   repeated FileBlockMetadata metadata = 2;  // Lista de bloques y su metadata con DataNodes
+  string message = 3;
 }
 
 // Solicitud del cliente para enviar un bloque de datos a un DataNode
@@ -81,7 +79,6 @@ message StoreBlockResponse {
   bool success = 1;
   string message = 2;
 }
-
 
 message ListFilesRequest {
     string username = 1;
@@ -126,17 +123,13 @@ message DeleteFileResponse {
 
 message DeleteBlockRequest {
     string filename = 1;
+    int32 block_number = 2;
 }
 
 message DeleteBlockResponse {
     bool success = 1;
     string message = 2;
 }
-
-message GetFileRequest {
-    string filepath = 1;
-}
-
 
 // Mensaje de solicitud de Heartbeat
 message HeartbeatRequest {
@@ -185,5 +178,3 @@ message RetrieveBlockResponse {
     string message = 2;
     bytes data = 3;  // Contenido binario del bloque
 }
-
-
