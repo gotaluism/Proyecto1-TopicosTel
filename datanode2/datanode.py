@@ -99,14 +99,23 @@ class DataNodeServicer(file_pb2_grpc.DataNodeServiceServicer):
         for dirpath, dirnames, filenames in os.walk(storage_dir):
             for filename in filenames:
                 if 'block' in filename:
-                    file_path = os.path.join(dirpath, filename)
-                    relative_path = os.path.relpath(file_path, storage_dir)
-                    file_size = os.path.getsize(file_path)
+                    # Extraer el número de bloque del nombre del archivo
+                    try:
+                        block_number_str = filename.split('_')[1].split('.')[0]
+                        block_number = int(block_number_str)
+                    except (IndexError, ValueError):
+                        print(f"Formato de bloque inválido: {filename}")
+                        continue
+
+                    original_filename = os.path.basename(dirpath)
+                    block_id = f"{original_filename}::block::{block_number}"
+                    file_size = os.path.getsize(os.path.join(dirpath, filename))
                     block_info.append(file_pb2.BlockInfo(
-                        block_id=relative_path,
+                        block_id=block_id,
                         size=file_size
                     ))
         return block_info
+
 
     def StoreBlock(self, request, context):
         filename = request.filename
@@ -124,10 +133,10 @@ class DataNodeServicer(file_pb2_grpc.DataNodeServiceServicer):
             with open(block_path, 'wb') as f:
                 f.write(data)
 
-            # Actualizar la lista de bloques almacenados
-            block_entry = os.path.join(filename, f'block_{block_number}.txt')
-            if block_entry not in self.stored_blocks:
-                self.stored_blocks.append(block_entry)
+            # Actualizar la lista de bloques almacenados con el nuevo formato de block_id
+            block_id = f"{filename}::block::{block_number}"
+            if block_id not in self.stored_blocks:
+                self.stored_blocks.append(block_id)
 
             print(f"Bloque {block_number} del archivo '{filename}' almacenado en {self.datanode_name}.")
             return file_pb2.StoreBlockResponse(success=True, message=f"Bloque {block_number} guardado correctamente.")
