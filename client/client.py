@@ -44,6 +44,8 @@ class DFSClient:
 
         # Directorio temporal para almacenar los bloques
         temp_dir = './temp'
+        if self.path:
+            filename = os.path.join(self.path, filename)
         if not os.path.exists(temp_dir):
             os.makedirs(temp_dir)
 
@@ -54,7 +56,7 @@ class DFSClient:
             metadata_table = []
 
             while chunk:
-                chunk_name = os.path.join(temp_dir, f"{filename}_block{chunk_num:02d}.txt")
+                chunk_name = os.path.join(temp_dir, f"block{chunk_num:02d}.txt")
                 start_byte = (chunk_num - 1) * chunk_size
                 end_byte = start_byte + len(chunk)
 
@@ -152,7 +154,7 @@ class DFSClient:
             os.makedirs(out_dir)
 
         # Asegurarnos de que no exista un directorio con el mismo nombre del archivo
-        file_path = os.path.join(out_dir, os.path.basename(filename))
+        file_path = os.path.join(out_dir, filename)
         if os.path.isdir(file_path):
             print(f"Error: Existe un directorio con el mismo nombre del archivo '{filename}' en 'recovered'.")
             return False
@@ -251,9 +253,6 @@ class DFSClient:
             print("Error: El nombre del directorio no puede estar vacío.")
             return
 
-        if self.path:
-            directory = os.path.join(self.path, directory)
-
         request = file_pb2.RmdirRequest(username=self.username, directory=directory)
         response = self.stub.Rmdir(request)
 
@@ -263,9 +262,6 @@ class DFSClient:
             print(f"Error al eliminar el directorio: {response.message}")
     
     def rm(self, filename):
-        if self.path:
-            filename = os.path.join(self.path, filename)
-
         request = file_pb2.DeleteFileRequest(username=self.username, filename=filename)
         response = self.stub.DeleteFile(request)
 
