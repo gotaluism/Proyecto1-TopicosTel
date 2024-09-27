@@ -53,8 +53,7 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
         metadata = []
         block_locations = []
 
-        print("___FILENAME__")
-        print(filename)
+        print(f"Recibida solicitud de almacenamiento para el archivo: {filename} del usuario: {username}")
     
         # Verificar si hay suficientes DataNodes activos
         if len(self.datanodes) < 2:
@@ -90,9 +89,9 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
     def select_datanodes_for_block(self, block_number):
         # Seleccionar dos DataNodes diferentes para replicación
         datanode_list = list(self.datanodes.keys())
-        index = block_number % len(datanode_list)
-        datanode1 = datanode_list[index]
-        datanode2 = datanode_list[(index + 1) % len(datanode_list)]
+        # Distribuir los bloques de manera uniforme
+        datanode1 = datanode_list[block_number % len(datanode_list)]
+        datanode2 = datanode_list[(block_number + 1) % len(datanode_list)]
         return [datanode1, datanode2]
 
     def GetFileMetadata(self, request, context):
@@ -100,8 +99,6 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
         username = request.username
 
         # Verifica si el archivo existe para el usuario
-        print("___FILENAME______EN_NAMENODE")
-        print(filename)
         if username not in self.user_files or filename not in self.user_files[username]:
             return file_pb2.FileMetadataResponse(success=False, message="Archivo no encontrado.")
 
@@ -109,7 +106,6 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
         file_metadata = []
         if filename in self.file_metadata:
             for block_number, datanodes in self.file_metadata[filename].items():
-                # Puedes ajustar start_byte y end_byte si es necesario
                 file_metadata.append(file_pb2.FileBlockMetadata(
                     block_number=block_number,
                     start_byte=0,
@@ -153,7 +149,6 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
             return file_pb2.MkdirResponse(success=False, message="El directorio ya existe.")
         
         self.user_directories[username].append(new_dir)
-        print(self.user_directories)
         print(f"Directorio '{new_dir}' creado para el usuario '{username}'")
         return file_pb2.MkdirResponse(success=True, message="Directorio creado con éxito.")
 
@@ -197,12 +192,8 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
 
         # Remover metadata del archivo
         self.user_directories[username].remove(dir)
-        del self.file_metadata[filename]
-
-
         print(f"Directorio '{dir}' eliminado para el usuario '{username}'")
         return file_pb2.MkdirResponse(success=True, message="Directorio eliminado con éxito.")
-    
     
     def DeleteFile(self, request, context):
         username = request.username
@@ -279,6 +270,7 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
             time.sleep(5)
 
     def handle_datanode_failure(self, datanode_name):
+        print(f"DataNode {datanode_name} ha fallado porque no se detectó el heartbeat. Procediendo a redistribuir los bloques.")
         # Remover DataNode de la lista de activos
         del self.datanodes[datanode_name]
         if datanode_name in self.datanode_blocks:
@@ -303,7 +295,7 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
             return
 
         source_datanode = list(current_datanodes)[0]
-        target_datanode = list(available_datanodes)[0]
+        target_datanode = min(available_datanodes, key=lambda dn: len(self.datanode_blocks.get(dn, [])))
 
         # Iniciar la replicación
         try:
@@ -345,7 +337,8 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
     def update_file_metadata(self, filename, block_number, datanode):
         if filename in self.file_metadata:
             if block_number in self.file_metadata[filename]:
-                self.file_metadata[filename][block_number].append(datanode)
+                if datanode not in self.file_metadata[filename][block_number]:
+                    self.file_metadata[filename][block_number].append(datanode)
             else:
                 self.file_metadata[filename][block_number] = [datanode]
         else:
@@ -359,9 +352,6 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
 
         # Actualizar la información de los bloques para este DataNode
         self.update_block_information(datanode_name, blocks)
-
-        # Verificar la replicación y la integridad de los bloques
-        # (Puedes implementar verificación adicional aquí si es necesario)
 
         return file_pb2.BlockReportResponse(message="Block Report procesado correctamente")
     
