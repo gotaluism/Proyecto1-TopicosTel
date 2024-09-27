@@ -358,6 +358,8 @@ class DFSClient:
             self.rmdir(directory)
         elif command == "rm":
             filename = input("Ingrese el nombre del archivo a eliminar: ")
+            if self.path:
+                filename = os.path.join(self.path, filename)
             self.rm(filename)
         elif command == "8":
             print("Saliendo...")

@@ -1,4 +1,4 @@
-from pathlib import PureWindowsPath
+from pathlib import Path, PureWindowsPath
 from posixpath import normpath
 import shutil
 import sys
@@ -156,10 +156,9 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
         print(self.user_directories)
         print(f"Directorio '{new_dir}' creado para el usuario '{username}'")
         return file_pb2.MkdirResponse(success=True, message="Directorio creado con éxito.")
-    
+
     def convert(self, path):
-        return PureWindowsPath(normpath(PureWindowsPath(path).as_posix())).as_posix()
-    
+        return Path(path).as_posix()    
 
     def Rmdir(self, request, context):
         username = request.username
@@ -194,7 +193,7 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
                                 print(f"Error al eliminar bloque {block_number} del archivo '{filename}' en DataNode {datanode}: {delete_response.message}")
                         except Exception as e:
                             print(f"Excepción al conectar con DataNode {datanode}: {str(e)}")
-                self.user_files[username].remove()
+                self.user_files[username].remove(filename)
 
         # Remover metadata del archivo
         self.user_directories[username].remove(dir)

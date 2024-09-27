@@ -165,8 +165,9 @@ class DataNodeServicer(file_pb2_grpc.DataNodeServiceServicer):
 
                 # Remover el bloque de la lista de bloques almacenados
                 block_entry = os.path.join(filename, f'block_{block_number}.txt')
-                print("__BLOCK PATH__")
-                print(self.stored_blocks)
+
+
+
                 if block_entry in self.stored_blocks:
                     self.stored_blocks.remove(block_entry)  # ACTUALIZAR LA LISTA DE BLOQUES
 
