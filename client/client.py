@@ -38,12 +38,14 @@ class DFSClient:
             print(f"Registro fallido: {response.message}")
             return False
 
-    def partition(self, filename, in_path, out_path, chunk_size):
+    def partition(self, filename, in_path, chunk_size):
         source_path = os.path.join(in_path, filename)
         chunk_num = 1
 
         # Crear un directorio para los bloques, por ejemplo, './blocks/<filename>/'
-        blocks_dir = os.path.join(out_path, 'blocks', filename)
+        if self.path:
+            filename = os.path.join(self.path, filename)            
+        blocks_dir = os.path.join( 'blocks', filename)
         if not os.path.exists(blocks_dir):
             os.makedirs(blocks_dir)
 
@@ -95,15 +97,19 @@ class DFSClient:
 
         filename = os.path.basename(filepath)
         file_dir = os.path.dirname(filepath)
-        if self.path != None:
-            out_dir = os.path.join('./', self.path)
-        else:            
-            out_dir = './' 
+
+        # if self.path != None:
+        #     out_dir = os.path.join('./', self.path)
+        # else:            
+        #     out_dir = './' 
+
         chunk_size = 64 * 1024  # Tamaño de cada bloque 64 KB
 
         # Particionar el archivo en bloques y crear metadata
-        metadata = self.partition(filename, file_dir, out_dir, chunk_size)
+        metadata = self.partition(filename, file_dir, chunk_size)
 
+        if self.path:
+            filename = os.path.join(self.path, filename)     
         # Enviar metadata al NameNode
         metadata_request = file_pb2.FileMetadataRequest(
             filename=filename,
@@ -138,6 +144,7 @@ class DFSClient:
             username=self.username
         )
         response = self.stub.GetFileMetadata(metadata_request)
+        print(response.metadata)
 
         if not response.success:
             print(f"Error al obtener metadata del archivo {filename}: {response.message}")
@@ -171,6 +178,9 @@ class DFSClient:
         # Ordenar los bloques por número para reconstruir el archivo
         file_blocks.sort(key=lambda x: x[0])
 
+        directory = os.path.dirname(file_path)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
         # Ensamblar el archivo en la carpeta 'recovered'
         with open(file_path, 'wb') as file:
             for _, block_data in file_blocks:
@@ -293,22 +303,29 @@ class DFSClient:
         
         print("Ingrese el nombre del directorio que desea usar: ")
         directoryName = input()
-    
-        request = file_pb2.ListFilesRequest(username=self.username)
-        response = self.stub.ListFiles(request)
 
-        if directoryName in response.directorynames:
-            if self.path != None:
-                self.path = os.path.join(self.path, directoryName)
+        if directoryName == "..":
+            self.path = "/".join(self.path.split("/")[:-1])  # Regresa al directorio anterior
+        else:    
+            request = file_pb2.ListFilesRequest(username=self.username)
+            response = self.stub.ListFiles(request)
+
+            if directoryName in response.directorynames:
+                self.path = self._get_full_path(directoryName)
+                print(f"Directorio actual: {self.path}")
             else:
-                self.path = directoryName
-            print("Ruta actualizada a: " + self.path)
-        else:
-            print("Esta carpeta no existe")
+                print("Esta carpeta no existe")
+
+
+    def _get_full_path(self, name):
+        """Devuelve la ruta completa concatenando el directorio actual y el nombre."""
+        if self.path:
+            return f"{self.path}/{name}"
+        return name
             
 
     def show_menu(self):
-        if self.path != None:
+        if self.path:
             print("Tu ruta actual es: " + self.path)
         print("\nMenú de Comandos:")
         print("1. ls")
@@ -324,10 +341,11 @@ class DFSClient:
         if command == "ls":
             self.ls()
         elif command == "cd": 
-            print("Ejecutando comando 'cd'...")
             self.cd()
         elif command == "get":
             filename = input("Ingrese el nombre del archivo que desea descargar: ")
+            if self.path:
+                filename = os.path.join(self.path, filename)
             self.get(filename)
         elif command == "put":
             filepath = input("Ingrese la ruta al archivo local que desea subir: ")

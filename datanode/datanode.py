@@ -152,14 +152,21 @@ class DataNodeServicer(file_pb2_grpc.DataNodeServiceServicer):
         file_dir = os.path.join(storage_dir, filename)
         block_path = os.path.join(file_dir, f'block_{block_number}.txt')
 
+        print("__BLOCK PATH__")
+        print(block_path)
+        ruta_normalizada = os.path.normpath(block_path)
+        print("__BLOCK PATH NORMALIZADO ___")
+        print(ruta_normalizada)
         # Verifica si el bloque existe
-        if os.path.exists(block_path):
+        if os.path.exists(ruta_normalizada):
             try:
                 # Elimina el bloque
                 os.remove(block_path)
 
                 # Remover el bloque de la lista de bloques almacenados
                 block_entry = os.path.join(filename, f'block_{block_number}.txt')
+                print("__BLOCK PATH__")
+                print(self.stored_blocks)
                 if block_entry in self.stored_blocks:
                     self.stored_blocks.remove(block_entry)  # ACTUALIZAR LA LISTA DE BLOQUES
 
@@ -175,6 +182,8 @@ class DataNodeServicer(file_pb2_grpc.DataNodeServiceServicer):
         block_number = request.block_number
         storage_dir = self.get_storage_directory()  # Usa la carpeta común 'downloads'
         file_dir = os.path.join(storage_dir, filename)
+        print("____FILE DIR___")
+        print(file_dir)
         block_path = os.path.join(file_dir, f'block_{block_number}.txt')
 
         if not os.path.exists(block_path):

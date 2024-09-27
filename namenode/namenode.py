@@ -1,3 +1,6 @@
+from pathlib import PureWindowsPath
+from posixpath import normpath
+import shutil
 import sys
 import os
 import time
@@ -49,6 +52,9 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
         username = request.username
         metadata = []
         block_locations = []
+
+        print("___FILENAME__")
+        print(filename)
     
         # Verificar si hay suficientes DataNodes activos
         if len(self.datanodes) < 2:
@@ -94,6 +100,8 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
         username = request.username
 
         # Verifica si el archivo existe para el usuario
+        print("___FILENAME______EN_NAMENODE")
+        print(filename)
         if username not in self.user_files or filename not in self.user_files[username]:
             return file_pb2.FileMetadataResponse(success=False, message="Archivo no encontrado.")
 
@@ -149,6 +157,9 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
         print(f"Directorio '{new_dir}' creado para el usuario '{username}'")
         return file_pb2.MkdirResponse(success=True, message="Directorio creado con éxito.")
     
+    def convert(self, path):
+        return PureWindowsPath(normpath(PureWindowsPath(path).as_posix())).as_posix()
+    
 
     def Rmdir(self, request, context):
         username = request.username
@@ -162,7 +173,34 @@ class NameNodeServicer(file_pb2_grpc.NameNodeServiceServicer):
         if dir not in self.user_directories[username]:
             return file_pb2.MkdirResponse(success=False, message="El directorio no existe.")
         
+
+          # Eliminar bloques del archivo en los DataNodes correspondientes
+        for filename in self.file_metadata:
+            # filename_normalizado = os.path.normpath(filename)
+            filename_normalizado = self.convert(filename)
+            print("___FILENAME NORMALIZADO___")
+            print(filename_normalizado)
+
+            if filename_normalizado.startswith(dir + '/') or filename_normalizado.startswith(dir + '\\') :
+                for block_number, datanodes in self.file_metadata[filename].items():
+                    for datanode in datanodes:
+                        try:
+                            datanode_channel = grpc.insecure_channel(datanode)
+                            datanode_stub = file_pb2_grpc.DataNodeServiceStub(datanode_channel)
+
+                            delete_request = file_pb2.DeleteBlockRequest(filename=filename, block_number=block_number)
+                            delete_response = datanode_stub.DeleteBlock(delete_request)
+                            if not delete_response.success:
+                                print(f"Error al eliminar bloque {block_number} del archivo '{filename}' en DataNode {datanode}: {delete_response.message}")
+                        except Exception as e:
+                            print(f"Excepción al conectar con DataNode {datanode}: {str(e)}")
+                self.user_files[username].remove()
+
+        # Remover metadata del archivo
         self.user_directories[username].remove(dir)
+        del self.file_metadata[filename]
+
+
         print(f"Directorio '{dir}' eliminado para el usuario '{username}'")
         return file_pb2.MkdirResponse(success=True, message="Directorio eliminado con éxito.")
     
