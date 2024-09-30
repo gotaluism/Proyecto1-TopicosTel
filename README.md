@@ -358,4 +358,9 @@ Ejecución de los Dtanode:
 ```bash
 python3 datanode.py
 ```
+### Captura de las instancias en ejecución cuando `namenode` y `datanode3` están en ejecución
+
+![image](https://github.com/user-attachments/assets/5ca40213-ff0e-49d5-aca7-9b18c91d9400)
+![image](https://github.com/user-attachments/assets/c16c8b48-917f-450a-ad25-aec74f13d96e)
+
 
