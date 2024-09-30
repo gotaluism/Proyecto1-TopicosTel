@@ -217,3 +217,145 @@ Secuencia:
 1. Participa en el proceso de recuperación de datos en caso de fallo.
 2. Reemplaza los bloques que faltan o están dañados según las instrucciones del NameNode.
 
+
+
+
+
+# Despliegue del Proyecto en AWS
+
+## Descripción General
+
+Este proyecto utiliza 4 instancias EC2 de AWS para simular un sistema distribuido con un *namenode* y 3 *datanodes*. A continuación se detalla el proceso de despliegue, configuración y ejecución de los nodos en las instancias.
+
+---
+
+## 1. Creación de Instancias en AWS
+
+Se crearon 4 instancias EC2 de tipo `t2.nano`, con las siguientes configuraciones:
+
+- **Namenode (Instancia: Proyecto1. Topicos Tel)**:
+  - IP Pública: `35.168.147.129`
+  
+- **Datanode 1**:
+  - IP Pública: `98.83.59.27`
+  
+- **Datanode 2**:
+  - IP Pública: `23.23.84.61`
+  
+- **Datanode 3**:
+  - IP Pública: `98.83.74.28`
+
+### Captura de las instancias en ejecución
+![image](https://github.com/user-attachments/assets/f1aa4de9-3c62-4106-88ae-cd77e6fb0629)
+![image](https://github.com/user-attachments/assets/aa3fb199-3ead-4777-a8bf-178a726f9922)
+
+---
+
+## 2. Conexión a las Instancias
+
+Para conectarse a cada instancia se utiliza SSH con la clave PEM proporcionada al momento de crear las instancias. El comando utilizado para la conexión es:
+
+ssh -i P1.pem ubuntu@[IP_ELÁSTICA]
+
+
+**Ejemplo** para conectarse a `Datanode3`:
+
+ssh -i P1.pem ubuntu@98.83.74.28
+
+
+---
+
+## 3. Instalación de Dependencias
+
+Una vez dentro de cada instancia, se realizó la instalación de las dependencias necesarias para ejecutar el proyecto:
+
+1. **Instalar Git** para clonar el repositorio:
+
+    ```bash
+    sudo apt-get update
+    sudo apt-get install git
+    ```
+
+2. **Instalar Python3 y pip**:
+
+    ```bash
+    sudo apt-get install python3 python3-pip
+    ```
+
+3. **Clonar el repositorio del proyecto**:
+
+    ```bash
+    git clone https://github.com/gotaluism/Proyecto1-TopicosTel.git
+    ```
+
+4. **Crear y activar un entorno virtual** dentro del directorio del proyecto:
+
+    ```bash
+    cd Proyecto1-TopicosTel
+    python3 -m venv venv
+    source venv/bin/activate
+    ```
+
+5. **Instalar gRPC y sus herramientas** dentro del entorno virtual:
+
+    ```bash
+    pip install grpcio grpcio-tools
+    ```
+
+---
+
+## 4. Modificación de Archivos para configuración de Nodos
+
+### 4.1. Configuración de los Datanodes
+
+En los archivos de los *datanodes*, se modificó la función `serve()` para que escuche en la IP de la instancia correspondiente y en el puerto `5000x`. A continuación se muestra un ejemplo de esta modificación para *Datanode3*:
+
+```python
+if __name__ == "__main__":
+    node_number = int(input("Ingrese el número del Datanode: "))
+    port = 50003
+    serve('98.83.74.28', port)
+```
+
+### Captura de el cambio realizado en código
+
+![image](https://github.com/user-attachments/assets/cc828faa-7b1a-47c5-90f3-cf50fcb122c8)
+
+En el datanode 1 se realizó con el puerto `50001`
+En el datanode 2 se realizó con el puerto `50002`
+Además, en cada *datanode*, se configuró el servidor gRPC para que escuche en el puerto `50003` y acepte conexiones de cualquier dirección IP:
+
+```python
+server.add_insecure_port('0.0.0.0:50003')
+
+```
+
+### 4.2. Configuración del Cliente
+
+En el archivo del cliente, se modificó la IP para que se conecte al namenode, en lugar de localhost, utilizando la IP pública de la instancia correspondiente. Ejemplo:
+
+```python
+if __name__ == "__main__":
+    client = DFSClient('35.168.147.129', 5000)
+```
+
+### Captura del código con la modificación de la IP para el cliente
+![image](https://github.com/user-attachments/assets/55517e7e-6971-4981-8352-67fc43ca71cd)
+
+
+## 5. Ejecución de los Nodos
+
+Después de realizar las modificaciones en los archivos de configuración, se procede a la ejecución de los nodos.
+
+Ejecución del Namenode:
+
+```bash
+python3 namenode.py
+```
+
+Ejecución de los Dtanode:
+
+```bash
+python3 datanode.py
+```
+
